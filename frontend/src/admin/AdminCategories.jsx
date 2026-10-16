@@ -1,0 +1,263 @@
+import { useEffect, useState } from 'react';
+import { Plus, Pencil, Trash2, ImagePlus, X, Link2, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../api/client';
+import { Spinner, Checkbox } from '../components/ui';
+
+const BLANK = { id: null, name: '', description: '', image_url: '', parent_id: '', is_active: 1 };
+const isImageUrl = (v) => /^https?:\/\/\S+$/i.test(v) || /^data:image\//i.test(v);
+
+/**
+ * Scale an uploaded photo down to fit 900×1200 (never up) and re-encode as WebP
+ * (JPEG fallback) so the stored image stays small. Category cards on the store
+ * are shown in a 3:4 portrait arch frame.
+ */
+function prepareImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, 900 / img.naturalWidth, 1200 / img.naturalHeight);
+        if (scale === 1 && file.size < 400 * 1024) { resolve(reader.result); return; }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        let url = canvas.toDataURL('image/webp', 0.85);
+        if (!url.startsWith('data:image/webp')) {
+          ctx.globalCompositeOperation = 'destination-over';
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          url = canvas.toDataURL('image/jpeg', 0.85);
+        }
+        resolve(url);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function AdminCategories() {
+  const [cats, setCats] = useState(null);
+  const [form, setForm] = useState(BLANK);
+  const [urlInput, setUrlInput] = useState('');
+  const [show, setShow] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const load = () => api.get('/api/admin/categories').then((r) => setCats(r.data.data)).catch(() => {});
+  useEffect(() => {
+    load();
+    const timer = setInterval(() => { if (document.visibilityState === 'visible') load(); }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const open = (data) => {
+    setForm(data);
+    setUrlInput(data.image_url && /^https?:/i.test(data.image_url) ? data.image_url : '');
+    setShow(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (form.image_url && !isImageUrl(form.image_url)) { toast.error('Image URL must start with http:// or https://'); return; }
+    setSaving(true);
+    try {
+      if (form.id) {
+        try {
+          await api.post(`/api/admin/categories/${form.id}`, { ...form, _method: 'PUT' });
+        } catch {
+          await api.put(`/api/admin/categories/${form.id}`, form);
+        }
+      } else {
+        await api.post('/api/admin/categories', form);
+      }
+      toast.success(form.id ? 'Category updated' : 'Category created');
+      setShow(false); setForm(BLANK); setUrlInput('');
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image file'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image too large (max 10 MB)'); return; }
+    try {
+      const url = await prepareImage(file);
+      setForm((f) => ({ ...f, image_url: url }));
+      setUrlInput('');
+    } catch {
+      toast.error('Could not read that image');
+    }
+  };
+
+  const applyUrl = () => {
+    const v = urlInput.trim();
+    if (!v) return;
+    if (!/^https?:\/\/\S+$/i.test(v)) { toast.error('Paste a full image link starting with http:// or https://'); return; }
+    setForm((f) => ({ ...f, image_url: v }));
+  };
+
+  const edit = (c) => open({
+    id: c.id, name: c.name, description: c.description || '', image_url: c.image_url || '',
+    parent_id: c.parent_id || '', is_active: c.is_active != null ? Number(c.is_active) : 1,
+  });
+
+  const del = async (id) => {
+    if (!confirm('Delete category? Products in it will be removed.')) return;
+    try {
+      try {
+        await api.post(`/api/admin/categories/${id}/delete`, { _method: 'DELETE' });
+      } catch (e1) {
+        await api.delete(`/api/admin/categories/${id}`);
+      }
+      toast.success('Deleted');
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Could not delete category');
+    }
+  };
+
+  if (!cats) return <Spinner />;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Categories</h1>
+          <p className="text-sm text-gray-400">{cats.length} categor{cats.length === 1 ? 'y' : 'ies'} · shown on the home page "Shop by category"</p>
+        </div>
+        <button onClick={() => open(BLANK)} className="btn-gold !py-2 text-sm"><Plus size={16} /> Add</button>
+      </div>
+
+      {show && (
+        <form onSubmit={save} className="card p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">{form.id ? `Edit “${form.name}”` : 'New category'}</h2>
+            <button type="button" onClick={() => setShow(false)} className="rounded-full p-1.5 text-gray-400 hover:bg-black/5 dark:hover:bg-white/10" aria-label="Close"><X size={18} /></button>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-[200px_1fr]">
+            {/* Image — 3:4 preview, upload from device or paste a link */}
+            <div>
+              <p className="mb-1.5 text-sm text-gray-400">Image</p>
+              <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-b-xl rounded-t-full border border-black/10 bg-cream dark:border-white/10 dark:bg-white/5">
+                {form.image_url ? (
+                  <>
+                    <img src={form.image_url} alt="Category" className="h-full w-full object-cover"
+                      onError={() => toast.error('That image could not be loaded — check the link')} />
+                    <button type="button" onClick={() => { setForm({ ...form, image_url: '' }); setUrlInput(''); }}
+                      className="absolute bottom-2 right-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-rose-500" aria-label="Remove image">
+                      <X size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1.5 text-gold hover:bg-gold/5">
+                    <ImagePlus size={22} />
+                    <span className="text-xs font-semibold">Upload</span>
+                    <span className="text-[10px] text-gray-400">3:4 portrait</span>
+                    <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+                  </label>
+                )}
+              </div>
+              {form.image_url && (
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-gold hover:underline">
+                  <ImagePlus size={13} /> Replace image
+                  <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+                </label>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm text-gray-400">Name *</label>
+                <input required className="input" placeholder="e.g. Bangles" value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-gray-400">Image URL</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Link2 size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="url" className="input pl-10" placeholder="https://… paste an image link"
+                      value={urlInput} onChange={(e) => setUrlInput(e.target.value)}
+                      onBlur={applyUrl}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyUrl(); } }} />
+                  </div>
+                  <button type="button" onClick={applyUrl} className="btn-outline !px-4 !py-2 text-sm">Use</button>
+                </div>
+                <p className="mt-1 text-xs text-gray-400">Upload from your device or paste a link — portrait 3:4 (e.g. 900 × 1200 px) looks best.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm text-gray-400">Parent category</label>
+                  <select className="input" value={form.parent_id}
+                    onChange={(e) => setForm({ ...form, parent_id: e.target.value })}>
+                    <option value="">Top-level (no parent)</option>
+                    {cats.filter((c) => c.id !== form.id).map((c) => (
+                      <option key={c.id} value={c.id}>Under: {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <label className="flex cursor-pointer items-center gap-2.5 self-end pb-3 text-sm">
+                  <Checkbox checked={!!Number(form.is_active)} onChange={(e) => setForm({ ...form, is_active: e.target.checked ? 1 : 0 })} />
+                  Show on store
+                </label>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-gray-400">Description</label>
+                <textarea rows={3} className="input" placeholder="Short line shown with the category"
+                  value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+
+              <div className="flex gap-3">
+                <button disabled={saving} className="btn-gold">{saving ? 'Saving…' : form.id ? 'Update' : 'Create'}</button>
+                <button type="button" onClick={() => setShow(false)} className="btn-outline">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {cats.map((c) => (
+          <div key={c.id} className="card flex items-center gap-4 p-4">
+            <div className="h-16 w-12 shrink-0 overflow-hidden rounded-b-lg rounded-t-full bg-cream dark:bg-white/5">
+              {c.image_url
+                ? <img src={c.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                : <div className="flex h-full w-full items-center justify-center font-display text-lg text-gold">{c.name?.[0]}</div>}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 truncate font-semibold">
+                {c.name}
+                {!Number(c.is_active) && <span title="Hidden from store" className="text-gray-400"><EyeOff size={14} /></span>}
+              </p>
+              <p className="text-sm text-gray-400">
+                {Number(c.product_count) > 0 ? `${c.product_count} products` : 'No products yet'}
+                {c.parent_name ? ` · under ${c.parent_name}` : ''}
+              </p>
+            </div>
+            <div className="flex gap-1">
+              <button onClick={() => edit(c)} className="rounded-lg p-2 hover:bg-gold/10" aria-label={`Edit ${c.name}`}><Pencil size={16} /></button>
+              <button onClick={() => del(c.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-500/10" aria-label={`Delete ${c.name}`}><Trash2 size={16} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

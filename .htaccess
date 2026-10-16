@@ -1,0 +1,21 @@
+# ─────────────────────────────────────────────────────────────
+#  Beadsboutique — app folder hardening
+#  Only the app's public entry points should be reachable over HTTP.
+#  Secrets, source, logs, DB dumps and dot-files are blocked.
+# ─────────────────────────────────────────────────────────────
+
+# No directory browsing (don't list files if there's no index)
+Options -Indexes
+
+# Block every dot-file: .env  .git  .htaccess  .gitignore …
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Block sensitive file types anywhere under this app
+<FilesMatch "\.(env|log|sql|md|example|ini|lock|json|sh|bat)$">
+    Require all denied
+</FilesMatch>
+
+# package.json / composer.json etc. are covered by the .json rule above.
+# The React build (frontend/dist) and API (backend/index.php) still work.

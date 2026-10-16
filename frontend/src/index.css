@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Bind the browser's native form-control rendering (autofill text colour,
+   caret, scrollbars) to the ACTIVE theme. A static `dark light` here made
+   Chrome paint input text light even on the light auth panel -> invisible. */
+html { color-scheme: light; scroll-behavior: smooth; }
+html.dark { color-scheme: dark; }
+
+body {
+  @apply bg-white text-ink dark:bg-ink dark:text-gray-100 font-sans antialiased;
+}
+
+/* Glassmorphism utility */
+@layer components {
+  .glass {
+    @apply bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-black/5 dark:border-white/10;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-6 py-3 font-semibold text-ink
+           transition hover:bg-gold-light hover:shadow-glow active:scale-95 disabled:opacity-50;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-gold/60 px-6 py-3 font-semibold
+           text-gold transition hover:bg-gold/10 active:scale-95;
+  }
+  .input {
+    @apply w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 px-4 py-3
+           text-ink dark:text-gray-100 placeholder:text-gray-400
+           outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/30;
+  }
+  .card {
+    @apply glass rounded-2xl shadow-glass;
+  }
+}
+
+/* Keep browser autofill from painting that washed-out blue/grey box —
+   preserve the field's own (glass) background and theme text colour. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: inherit;
+  caret-color: inherit;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* ── Themed native <select> dropdowns ──
+   Replaces the OS look (blue highlight, default arrow) with a brand-styled one:
+   a gold chevron, themed option list, and a gold highlight on the active option. */
+select.input {
+  accent-color: #b8745a;                 /* gold highlight in the open option list */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b8745a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 1.05rem;
+  padding-right: 2.6rem;
+}
+select.input option {
+  background-color: #ffffff;
+  color: #3a0d14;                        /* wine ink */
+  padding: 10px;
+  font-weight: 500;
+}
+html.dark select.input option {
+  background-color: #3a0d14;             /* wine panel */
+  color: #f3f4f6;
+}
+select.input option:checked,
+select.input option:hover {
+  background: #b8745a;                    /* rose gold */
+  color: #3a0d14;
+}
+
+/* ── iPhone (iOS) look for the sign-in / sign-up screens (AuthShell adds .ios-auth) ──
+   SF system font, grouped white fields on system-grey, 50px rounded-rect button,
+   iOS switch. Brand rose-gold stays the tint colour. */
+.ios-auth {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+.ios-auth .input {
+  height: 50px;
+  border-radius: 12px;
+  border: 0;
+  background-color: #ffffff;
+  font-size: 17px;
+  color: #1c1c1e;
+  box-shadow: none;
+}
+.ios-auth .input::placeholder { color: #c7c7cc; }
+.ios-auth .input:focus { box-shadow: 0 0 0 3px rgba(184,116,90,0.28); }
+html.dark .ios-auth .input { background-color: #1c1c1e; color: #fff; }
+
+/* Grouped list: several fields in one rounded card with inset hairline separators */
+.ios-group { overflow: hidden; border-radius: 12px; background: #fff; }
+html.dark .ios-group { background: #1c1c1e; }
+.ios-group .input { border-radius: 0; }
+.ios-group .input:focus { box-shadow: none; }
+/* Inset hairline above every row after the first (drawn as a background so it also
+   works on bare <input>s, which can't have ::before) */
+.ios-group > * + *,
+.ios-group > * + * .input {
+  background-image: linear-gradient(rgba(60,60,67,0.29), rgba(60,60,67,0.29));
+  background-repeat: no-repeat;
+  background-size: calc(100% - 16px) 0.5px;
+  background-position: 16px 0;
+}
+.ios-group > div + div { background-image: none; } /* wrapper divs: line is drawn on their .input */
+.ios-group-icons > * + *,
+.ios-group-icons > * + * .input { background-size: calc(100% - 44px) 0.5px; background-position: 44px 0; } /* inset past the icon */
+
+/* Primary button: iOS filled rounded-rect */
+.ios-auth .btn-gold {
+  height: 50px;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: none;
+}
+.ios-auth .btn-gold:hover { box-shadow: none; filter: brightness(1.05); }
+.ios-auth .btn-gold:active { transform: none; opacity: 0.7; }
+.ios-auth .btn-outline { height: 50px; border-radius: 14px; font-size: 17px; }
+
+/* iOS switch (use on <input type="checkbox" class="ios-switch">) */
+.ios-switch {
+  -webkit-appearance: none; appearance: none;
+  position: relative; width: 51px; height: 31px; flex-shrink: 0;
+  border-radius: 9999px; background: #e9e9ea; cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+.ios-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px;
+  border-radius: 9999px; background: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.16);
+  transition: transform 0.25s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+.ios-switch:checked { background: #34c759; }
+.ios-switch:checked::after { transform: translateX(20px); }
+.ios-switch:focus-visible { outline: 2px solid rgba(184,116,90,0.6); outline-offset: 2px; }
+
+/* Hide scrollbar on horizontal rails (landing featured collections) */
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { @apply bg-gold/40 rounded-full; }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+/* ── Admin dashboard utilities ── */
+
+/* Stagger animation delay classes for cascading card entrances */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.40s; }
+
+/* KPI card hover glow */
+.card-glow {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.25s ease;
+}
+.card-glow:hover {
+  box-shadow: 0 0 24px rgba(184,116,90, 0.15), 0 8px 32px rgba(0,0,0,0.12);
+  border-color: rgba(184,116,90, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Active sidebar accent bar */
+.nav-accent-active {
+  position: relative;
+}
+.nav-accent-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #b8745a, #dba58c);
+  box-shadow: 0 0 8px rgba(184,116,90, 0.4);
+}
+
+/* Gradient icon background for KPI cards */
+.icon-gradient-emerald { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05)); }
+.icon-gradient-blue    { background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05)); }
+.icon-gradient-indigo  { background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05)); }
+.icon-gradient-gold    { background: linear-gradient(135deg, rgba(184,116,90,0.2), rgba(184,116,90,0.05)); }
+.icon-gradient-amber   { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); }
+.icon-gradient-cyan    { background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05)); }
+.icon-gradient-rose    { background: linear-gradient(135deg, rgba(244,63,94,0.15), rgba(244,63,94,0.05)); }
+
+/* Donut chart center label */
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+/* Admin sidebar: thin, unobtrusive scrollbar (only the nav list scrolls) */
+.sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.14) transparent; }
+.sidebar-scroll::-webkit-scrollbar { width: 6px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 9999px; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
