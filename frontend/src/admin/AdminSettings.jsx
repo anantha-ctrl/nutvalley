@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Store, Mail, Megaphone, Share2, Sparkles, Image as ImageIcon, Upload, Receipt, QrCode, CreditCard } from 'lucide-react';
+import { Save, Store, Mail, Megaphone, Share2, Sparkles, Image as ImageIcon, Upload, Receipt, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
 import { Spinner } from '../components/ui';
@@ -44,21 +44,12 @@ const SECTIONS = [
   ]],
   ['Orders & payment rules', CreditCard, [
     ['order_prefix', 'Order number prefix', 'BB', 'text'],
-    ['cod_max_amount', 'COD available up to (₹) — above this, online payment only', '1000', 'number'],
+    ['cod_max_amount', 'COD available up to (₹) — above this, online payment only (0 = COD for all orders)', '1000', 'number'],
   ]],
   ['Billing / POS (in-store invoice)', Receipt, [
     ['billing_tax_pct', 'Default tax / GST (%)', '0', 'number'],
     ['billing_invoice_prefix', 'Invoice number prefix', 'INV', 'text'],
     ['billing_footer_note', 'Invoice footer note', 'Thank you for shopping with Beadsboutique!', 'text'],
-  ]],
-  ['Online payment — UPI / QR (customers pay & upload proof; you approve)', QrCode, [
-    ['upi_id', 'UPI ID (leave empty to disable online payment)', 'beadsboutique@okaxis', 'text'],
-    ['upi_payee_name', 'Payee name shown to customer', 'Beadsboutique', 'text'],
-    ['upi_qr_image', 'Custom QR image (optional — auto-generated with amount if empty)', 'Square · 600×600 · your printed UPI QR', 'image'],
-    ['bank_account_name', 'Bank account holder name (optional)', 'Beadsboutique', 'text'],
-    ['bank_account_number', 'Bank account number (optional)', '1234567890', 'text'],
-    ['bank_ifsc', 'Bank IFSC (optional)', 'HDFC0001234', 'text'],
-    ['bank_name', 'Bank name (optional)', 'HDFC Bank', 'text'],
   ]],
 ];
 

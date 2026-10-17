@@ -2,6 +2,30 @@
 class CheckoutController
 {
     /**
+     * Live price quote for the checkout page — totals straight from the DB
+     * (cart, product prices, coupon, shipping rules) plus which payment
+     * methods this order may use.
+     */
+    public function quote(array $p): void
+    {
+        $userId = Auth::id();
+        $d = OrderController::buildOrderData($userId, Request::body(), false);
+
+        Response::success([
+            'subtotal'     => $d['subtotal'],
+            'discount'     => $d['discount'],
+            'shipping_fee' => $d['shipping_fee'],
+            'total'        => $d['total'],
+            'coupon_code'  => $d['coupon_code'],
+            'cod_max'      => OrderController::codMax(),
+            'cod_allowed'  => OrderController::codAllowed((float) $d['total']),
+            'online_mode'  => Razorpay::configured() ? 'live' : 'test',
+            // Keys set but rejected by Razorpay → hide online payment on the checkout.
+            'online_available' => !Razorpay::configured() || Razorpay::available(),
+        ]);
+    }
+
+    /**
      * Create a pending order + Razorpay order. Frontend opens Razorpay checkout with the returned data.
      */
     public function createOrder(array $p): void
@@ -10,9 +34,14 @@ class CheckoutController
         $d = OrderController::buildOrderData($userId, Request::body());
 
         // Razorpay is available for any amount (it's the only option above the COD threshold).
-        $rzpOrder = Razorpay::createOrder((int) round($d['total'] * 100), $d['order_number']);
+        $rzpOrder = Razorpay::createOrder((int) round($d['total'] * 100), $d['order_number'] ?: ('rcpt_' . uniqid()));
 
-        // If Razorpay keys are not configured, fall back to a "test" order so the flow is still demoable.
+        // Keys set but Razorpay refused (wrong keys / network) — stop here, never fake a payment.
+        if ($rzpOrder === null && Razorpay::configured()) {
+            Response::error('Online payment is unavailable right now. Please try again shortly or choose Cash on Delivery.', 502);
+        }
+
+        // No keys at all → demo "test" order so the flow can still be tried end-to-end.
         $rzpOrderId = $rzpOrder['id'] ?? ('order_test_' . uniqid());
         $orderId = OrderController::persistOrder($userId, $d, 'razorpay', 'pending', $rzpOrderId);
 
@@ -47,10 +76,13 @@ class CheckoutController
             Response::success(['order_number' => $order['order_number']], 'Already paid');
         }
 
-        $isTest = !empty($data['is_test']) || !env('RAZORPAY_KEY_SECRET');
+        // Test mode is decided by the SERVER only (no keys + a test order) — never by the request.
+        $isTest = !Razorpay::configured() && str_starts_with((string) $order['razorpay_order_id'], 'order_test_');
         if (!$isTest) {
+            // Verify against the Razorpay order id stored for THIS order, so a payment
+            // made for a different (cheaper) order can't be replayed here.
             $ok = Razorpay::verifySignature(
-                $data['razorpay_order_id'] ?? '',
+                (string) $order['razorpay_order_id'],
                 $data['razorpay_payment_id'] ?? '',
                 $data['razorpay_signature'] ?? ''
             );
@@ -63,30 +95,11 @@ class CheckoutController
         $db->prepare("UPDATE orders SET payment_status='paid', status='processing', razorpay_payment_id=? WHERE id=?")
            ->execute([$data['razorpay_payment_id'] ?? ('pay_test_' . uniqid()), $orderId]);
 
-        // Finalize: decrement stock, clear cart. Rebuild the item list from saved order_items.
-        $this->finalizeFromOrderItems($userId, $order);
+        // Finalize from the saved order rows: stock, coupon, loyalty points, the
+        // customer's confirmation email and the admin's new-order alert.
+        OrderController::finalizeFromDb($orderId);
+        $db->prepare('DELETE FROM cart WHERE user_id=?')->execute([$userId]);
 
         Response::success(['order_number' => $order['order_number']], 'Payment successful');
-    }
-
-    private function finalizeFromOrderItems(int $userId, array $order): void
-    {
-        $db = db();
-        $items = $db->prepare('SELECT product_id, variant_id, quantity FROM order_items WHERE order_id=?');
-        $items->execute([$order['id']]);
-        foreach ($items->fetchAll() as $it) {
-            if ($it['variant_id']) {
-                $db->prepare('UPDATE product_variants SET stock=GREATEST(stock-?,0) WHERE id=?')
-                   ->execute([$it['quantity'], $it['variant_id']]);
-            }
-            if ($it['product_id']) {
-                $db->prepare('UPDATE products SET stock=GREATEST(stock-?,0), sold_count=sold_count+? WHERE id=?')
-                   ->execute([$it['quantity'], $it['quantity'], $it['product_id']]);
-            }
-        }
-        if ($order['coupon_code']) {
-            $db->prepare('UPDATE coupons SET used_count=used_count+1 WHERE code=?')->execute([$order['coupon_code']]);
-        }
-        $db->prepare('DELETE FROM cart WHERE user_id=?')->execute([$userId]);
     }
 }

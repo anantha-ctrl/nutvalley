@@ -2,7 +2,7 @@
 
 A complete, production-ready **single-vendor e-commerce** web app for **Beads Boutique Jewellery**. It sells handcrafted beaded jewellery: necklaces, bracelets, earrings, bangles, harams, jhumkas, long chains, pendants and tikkas. It has a storefront for customers, an admin panel, and an in-store billing counter. All three read and write the same live MySQL database.
 
-**Stack:** React 18 (Vite) + Tailwind CSS · PHP 8 (dependency-free) · MySQL 8 / MariaDB · JWT + Email OTP · Cloudinary (all image uploads) · Gmail SMTP · Razorpay + UPI/QR (admin-verified) + COD
+**Stack:** React 18 (Vite) + Tailwind CSS · PHP 8 (dependency-free) · MySQL 8 / MariaDB · JWT + Email OTP · Cloudinary (all image uploads + optimised delivery) · Gmail SMTP · Razorpay + COD
 
 **Brand theme:** the colours come from the logo (`frontend/public/logo.png`):
 
@@ -14,6 +14,8 @@ A complete, production-ready **single-vendor e-commerce** web app for **Beads Bo
 | `cream` / `luxe` | `#fdf2f2` / `#fbf4f2` | Page backgrounds |
 
 **Support email** (the only address used for the store, SMTP sender and admin alerts): **beadsboutiquejewellery@gmail.com**
+
+> Admin alerts go to **Admin → Settings → "Message inbox"** (`store_contact_to`), falling back to the contact email, then the first admin user. Because the sender is the same Gmail account, Gmail may file self-sent alerts under *Sent / All Mail* — set the inbox to a different address to have them land in the Inbox.
 
 ---
 
@@ -54,28 +56,50 @@ flowchart TB
 ### Customer storefront
 - **Sign in / sign up** in an **iPhone (iOS) style**: grouped fields, iOS switch, 50px rounded buttons. Includes email OTP verification, forgot/reset password, and 7-day sliding sessions. There is no Google sign-in.
 - **Landing page** (`/`):
-  - **Hero carousel** built from admin banners. The default hero background image appears **only when no banners exist**.
+  - **Hero carousel** built from admin banners. Banner images are shown **without any dark overlay**; the copy sits bottom-left over a soft blush fade on the lower half only, so artwork/logos in the image stay clear. The carousel sits below the fixed header with a small gap. The default hero background image appears **only when no banners exist**.
   - **Shop by category** rail with arch-framed images that shows "N pieces" or "Coming soon" per category.
   - Featured and trending collections.
   - Brand story with **live stats** (customers, pieces, categories, reviews, average rating) from `/api/landing`.
 - **Shop and category pages:** search, live facet filters (category, brand, price), sort (price / popularity / newest / rating / discount), on-sale filter, pagination.
+- **Navigation:** every route change scrolls to the top (`App.jsx`), so a category opened from the footer starts at its products, not the footer.
 - **Product page:**
   - 3:4 image gallery with zoom, plus a Quick View drawer.
-  - Price, MRP and discount %, stock, and a returnable / free-shipping badge.
+  - Price, MRP and discount %, stock, and a returnable / free-shipping badge. The discount % is **rounded down** everywhere (backend + `utils/format.js`), so a near-total discount never shows as "-100%".
   - **Jewellery size guide** (ring, bracelet and necklace charts).
-  - Reviews with rating breakdown, frequently bought together, related products.
-  - Share buttons, and "notify me when back in stock".
+  - Reviews with rating breakdown, frequently bought together.
+  - **Related products:** same category first, topped up with best-sellers / newest from the rest of the store when the category has fewer than 4. The section is hidden only when the store has no other active product.
+  - **Share** (`components/ShareButtons.jsx`) — WhatsApp, Facebook, X, Instagram, copy. Every share carries the **photo, name, price / MRP / discount, a short description and the link**:
+    - The shared link is the backend page `/share/product/{slug}`, which serves Open Graph tags (photo as a 1200px JPG, title, price, description) for rich previews and redirects visitors to the product. Previews only work once the site is on a public domain — WhatsApp/Facebook cannot reach `localhost`.
+    - **Phones:** WhatsApp and Instagram open the native share sheet with the actual photo attached.
+    - **Desktop Instagram** (no web share API): downloads the photo, copies the caption and opens Instagram.
+  - "Notify me when back in stock".
   - Products have **no variants and no specifications**: one price, one MRP and one stock figure each.
 - **Wishlist, compare, and cart** (live totals).
 - **Checkout:**
-  - Address book and tap-to-apply coupon chips.
-  - Per-product shipping fees.
-  - Payment by **Razorpay** (card / UPI / netbanking), **UPI QR** with transaction ID + screenshot (approved by the admin), or **COD** up to the admin-set limit.
-- **Orders:** status timeline, shipment tracking, reorder, cancel (auto-restock), returns (RMA), post-delivery reviews, and a printable invoice with a delivery-verification QR.
+  - Address book. The new-address form is **pre-filled with the name and phone from registration** (read live from `/api/auth/me`); the street address is entered once and saved for next time.
+  - Tap-to-apply coupon chips.
+  - **Live server quote** — subtotal, coupon discount, shipping, total and allowed payment methods come from `POST /api/checkout/quote` (the same pricing code that creates the order), refreshed on cart / coupon / address change, on tab focus and every 30 s.
+  - Payment by **Razorpay** (card / UPI / netbanking / wallets) or **Cash on Delivery**. COD is allowed up to the admin-set limit; **limit `0` = COD for every order**.
+  - If the Razorpay keys are set but rejected by Razorpay, the online option is greyed out ("Temporarily unavailable") and COD is pre-selected, instead of failing on *Pay*. The key check is cached for 5 minutes in `backend/storage/razorpay_status.json` and re-runs at once when the keys change.
+  - The manual UPI-QR payment flow is no longer offered (its admin settings were removed); the backend endpoint remains for old orders.
+- **Orders:**
+  - Status timeline, shipment tracking, reorder, returns (RMA), post-delivery reviews.
+  - **Cancel** (auto-restock) is allowed only **until the order ships** — pending / processing / packed. Once *Shipped* or *Delivered* the button is replaced by a note, and the backend refuses atomically (an admin marking it shipped at the same moment always wins). Asks for confirmation; the order page re-checks its status on focus and every 30 s.
+  - Printable invoice (opens instantly; no QR block).
 - **Profile:** edit details, change password, addresses, rewards, and **profile photo upload**. Photos are cropped square to 400px, stored on Cloudinary, and shown in the header and the admin panel.
-- **Emails:**
-  - Order placed → **customer and admin** (sent after the API response, so checkout stays fast).
-  - Status updates and return updates → customer.
+- **Emails** (`core/Mailer.php`) — one light, branded design (blush page, wine header, rose-gold accents; tables + inline styles for Gmail/Outlook/phones). Order emails are rendered **from the live order row**: progress tracker, delivery address, order info, items with photos, discount, shipping, total and a "View / Track your order" button. All are sent after the HTTP response.
+
+  | Event | Customer | Admin |
+  |---|---|---|
+  | Order placed — COD, Razorpay, approved UPI | ✅ Order confirmed | ✅ New order (customer contact, WhatsApp link, items to pack) |
+  | Status → processing / packed / shipped / delivered / cancelled | ✅ one email per change | — |
+  | Carrier / tracking added to a shipped order | ✅ tracking email | — |
+  | Customer cancels | ✅ cancelled (+ refund note if prepaid) | ✅ "Do not pack or ship" (+ refund reminder) |
+  | Return updates | ✅ | — |
+
+  The customer is emailed only when the status actually changes (or tracking changes on a shipped order) — re-saving the same status sends nothing. OTP, password-reset, return, UPI and automation emails use the same design.
+- **Image performance:** uploads are stored as originals on Cloudinary (banners were ~2.4 MB PNGs). The API client rewrites every Cloudinary URL in **storefront** responses to `f_auto,q_auto,c_limit,w_1400` (`utils/cdn.js`), serving WebP/AVIF about **10× smaller** (homepage ≈ 38 MB → 2.9 MB). Admin responses are left untouched, so edit forms never save rewritten URLs.
+- **Policy pages** (`pages/static/`): Privacy, Terms, Returns ("Cancellation and Refund Policy") and Shipping ("Shipping & Delivery Policy") hold the store-supplied text. ⚠️ Returns and Shipping still contain `[specified time, e.g., …]` placeholders — replace them with the real time limits.
 - Floating WhatsApp button, mobile bottom tab bar, PWA manifest + service worker.
 - **Fully responsive** on mobile, tablet, laptop and desktop. Verified by a headless audit of every page at 375 / 768 / 1280 / 1536 px, with no horizontal overflow.
 
@@ -109,7 +133,7 @@ flowchart TB
 - **Customers** (CSV / Excel / PDF export), **reviews** moderation, **returns**, **loyalty** points, **messages** inbox (Contact Us).
 - **Reports:** date ranges, charts, CSV export.
 - **Mail automation:** a lifecycle email drip driven by order events, with editable offsets and a "Run due now" button.
-- **Settings:** brand logo and name, contact details, announcement bar, shipping rules, socials / WhatsApp, order prefix (`BB`), COD limit, UPI / bank details. Changes go live on the storefront without a redeploy.
+- **Settings:** brand logo and name, contact details, admin alert inbox, announcement bar (**leave empty to hide it**), shipping rules, socials / WhatsApp, order prefix (`BB`), COD limit (`0` = no limit). Changes go live on the storefront without a redeploy (open tabs pick them up on refresh). The UPI / QR section has been removed.
 - **Billing / POS** (`/cashier`): in-store counter with QR / barcode scan, discount, GST, cash / UPI / card / split payment, an 80mm thermal receipt, and void & restock. **Cashiers** get a login that can reach only the billing screen.
 
 ---
@@ -130,11 +154,13 @@ Beadsboutique/
 │   ├── config/                        # env loader, PDO database
 │   ├── core/                          # Response, Jwt, Auth, Mailer, Cloudinary, Razorpay, Automation…
 │   ├── controllers/                   # Auth, Product, Cart, Order, Checkout, Misc… + admin/
+│   ├── storage/                       # Runtime files, web-blocked (razorpay_status.json key-check cache, logs)
 │   └── scripts/migrate_images_to_cloudinary.php  # One-off: move stored base64 images to Cloudinary
 └── frontend/                          # React + Vite + Tailwind
     ├── public/                        # logo.png, logo.webp, icon-64/192/512.png, manifest, sw.js
     ├── src/
-    │   ├── api/client.js              # Axios + JWT interceptor, long timeout for image uploads
+    │   ├── api/client.js              # Axios + JWT interceptor, long timeout for image uploads, Cloudinary URL optimiser
+    │   ├── utils/                     # cdn.js (image optimisation), format.js (₹, discount %), invoice.js (print)
     │   ├── context/                   # Auth, Cart, Wishlist, Theme (light only), Compare, Store
     │   ├── components/                # Navbar, Footer, Logo, Avatar, ProductCard, SizeGuideModal…
     │   ├── landing/                   # Landing page sections (Hero, CategorySection, BrandIntro…)
@@ -189,14 +215,14 @@ Create accounts through the app, then promote an admin account by setting `role 
 
 | Variable | Purpose |
 |---|---|
-| `APP_ENV`, `APP_URL`, `FRONTEND_URL` | Environment and URLs (used in email links and CORS) |
+| `APP_ENV`, `APP_URL`, `FRONTEND_URL` | Environment and URLs. `FRONTEND_URL` must be the storefront's real address (`http://localhost:5190` in dev, your domain in production): it is used for email buttons, password-reset links and the share-page redirect. |
 | `DB_HOST/PORT/NAME/USER/PASS` | MySQL connection (`DB_NAME=beadsboutique_db`) |
 | `JWT_SECRET`, `JWT_TTL` | Token signing. **Use a long random secret.** |
 | `MAIL_DRIVER` | `smtp` sends real email; `log` writes to `backend/storage/mail.log` |
 | `SMTP_HOST/PORT/USER/PASS` | Gmail: `smtp.gmail.com:587`, user `beadsboutiquejewellery@gmail.com`, and a 16-character **App Password** (spaces are stripped automatically) |
 | `MAIL_FROM`, `MAIL_FROM_NAME` | Sender: `beadsboutiquejewellery@gmail.com` / `Beadsboutique` |
 | `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` | **Every** image upload (products, categories, banners, avatars, logo) is sent to Cloudinary using signed uploads. If the keys are missing, images are stored inline. |
-| `RAZORPAY_KEY_ID/KEY_SECRET` | Online payments (`rzp_test_…` for sandbox, `rzp_live_…` for real money). Empty keys = test mode. See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md). |
+| `RAZORPAY_KEY_ID/KEY_SECRET` | Online payments (`rzp_test_…` for sandbox, `rzp_live_…` for real money). Copy **both** from the same "Regenerate key" popup — a mismatched pair returns 401 *Authentication failed*. Empty keys = demo test mode (decided by the server only). Wrong keys never create fake paid orders: checkout refuses and hides online payment. See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md). |
 | `CRON_KEY` | Secret for `GET /api/cron/run?key=…`, which runs the mail-automation drip from Task Scheduler / cron |
 | `DELIVERY_*` | Optional courier API (the admin Delivery page has been removed; orders use manual carrier + tracking) |
 
@@ -272,8 +298,12 @@ PUT  /api/profile/password
 GET  /api/landing            (hero copy, banners, live stats)
 GET  /api/products?search=&sort=     GET /api/products/{slug}     GET /api/categories
 POST /api/cart · /api/coupons/apply · /api/contact · /api/reviews
+POST /api/checkout/quote     (live totals + cod_allowed + online_available)
 POST /api/checkout/create-order · /api/checkout/verify · /api/orders/cod · /api/orders/upi
 GET  /api/orders · /api/orders/verify/{id}?t=      POST /api/orders/{id}/return
+PUT  /api/orders/{id}/cancel  (until shipped; emails customer + admin)
+GET  /api/products/{slug}/related    (category first, store-wide fallback)
+GET  /share/product/{slug}           (HTML: Open Graph preview → redirects to the product)
 
 # admin
 GET  /api/admin/dashboard            GET/POST/PUT/DELETE /api/admin/products
@@ -292,16 +322,20 @@ GET/POST /api/admin/billing          PUT /api/admin/billing/{id}/void
 
 ```mermaid
 stateDiagram-v2
-    [*] --> awaiting_verification: UPI proof submitted
-    awaiting_verification --> pending: Admin approves → 📧 customer
-    [*] --> pending: COD / Razorpay order → 📧 customer + admin
-    pending --> processing
-    processing --> packed
+    [*] --> pending: COD order → 📧 customer + admin
+    [*] --> processing: Razorpay payment verified → 📧 customer + admin
+    pending --> processing: 📧
+    processing --> packed: 📧
     packed --> shipped: Carrier + tracking → 📧
     shipped --> delivered: 📧 + mail-automation drip
-    pending --> cancelled: stock restocked
+    pending --> cancelled: customer or admin
+    processing --> cancelled: customer or admin
+    packed --> cancelled: customer or admin
+    cancelled --> [*]: stock restocked · 📧 customer + admin
     delivered --> [*]
 ```
+
+Customers can cancel only before **shipped**; after that only a return (post-delivery) is possible. Refunds for cancelled online payments are issued manually from the Razorpay dashboard — the admin alert states the amount.
 
 ---
 
@@ -310,7 +344,9 @@ stateDiagram-v2
 - **UI:** Tailwind brand tokens, Framer Motion, Recharts, Lucide icons, react-hot-toast.
 - **Uploads:** large data-URI requests get a 120 s client timeout and clear error messages (timeout / offline / 413).
 - **Security:** bcrypt, HS256 JWT, PDO prepared statements, input validation, CORS, `.htaccess` deny rules.
-- **Email:** raw-socket STARTTLS mailer with RFC 2047-encoded headers. Order emails are deferred until after the HTTP response.
+- **Email:** raw-socket STARTTLS mailer with RFC 2047-encoded headers. Order emails are deferred until after the HTTP response. The header shows the store logo only when it is a hosted (Cloudinary) URL — email clients block inline `data:` images — otherwise the store name.
+- **Payments:** the Razorpay signature is verified against the Razorpay order id **stored for that order**, so a payment for another (cheaper) order can't be replayed.
+- **Images:** `utils/cdn.js` (`cdn()` / `optimizeImages()`) is idempotent and leaves non-Cloudinary, `data:` and already-transformed URLs unchanged.
 
 See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md) for payment-gateway setup and [backend/API.md](backend/API.md) for the full API reference.
 

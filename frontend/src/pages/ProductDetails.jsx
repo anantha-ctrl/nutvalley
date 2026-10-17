@@ -236,7 +236,7 @@ export default function ProductDetails() {
             <NotifyStock productId={product.id} />
           )}
 
-          <ShareButtons title={product.name} />
+          <ShareButtons product={product} />
 
           <div className="mt-8 grid grid-cols-3 gap-4 border-t border-black/5 pt-6 text-center text-xs dark:border-white/10">
             {[

@@ -71,10 +71,17 @@ class OrderController
         Response::success($order);
     }
 
-    /** Threshold rule: orders up to this amount are COD-only; above it are online-only. */
+    /** COD limit: orders above this amount must pay online. 0 / empty = no limit. */
     public static function codMax(): float
     {
         return (float) Setting::get('cod_max_amount', 1000);
+    }
+
+    /** Whether Cash on Delivery may be used for an order of this total. */
+    public static function codAllowed(float $total): bool
+    {
+        $max = self::codMax();
+        return $max <= 0 || $total <= $max;
     }
 
     /** True when the order contains at least one product still flagged returnable. */
@@ -95,7 +102,7 @@ class OrderController
         $userId = Auth::id();
         $built = self::buildOrderData($userId, Request::body());
         // COD is only allowed up to the threshold; bigger carts must pay online.
-        if ((float) $built['total'] > self::codMax()) {
+        if (!self::codAllowed((float) $built['total'])) {
             Response::error('Cash on Delivery is available only for orders up to ' . self::codMax() . '. Please pay online.', 422);
         }
         $orderId = self::persistOrder($userId, $built, 'cod', 'pending');
@@ -293,12 +300,59 @@ class OrderController
         if (!$order) {
             Response::error('Order not found', 404);
         }
-        if (in_array($order['status'], ['shipped', 'delivered', 'cancelled'], true)) {
-            Response::error('Order can no longer be cancelled', 400);
+        if (!self::customerCanCancel((string) $order['status'])) {
+            Response::error(self::cancelBlockedMessage((string) $order['status']), 400);
         }
-        $db->prepare("UPDATE orders SET status='cancelled' WHERE id=?")->execute([$order['id']]);
+        // Atomic: only cancels if the status is STILL cancellable, so an admin
+        // marking it "shipped" at the same moment always wins.
+        $upd = $db->prepare(
+            "UPDATE orders SET status='cancelled' WHERE id=? AND status NOT IN ('shipped','delivered','cancelled')"
+        );
+        $upd->execute([$order['id']]);
+        if ($upd->rowCount() === 0) {
+            $now = $db->prepare('SELECT status FROM orders WHERE id=?');
+            $now->execute([$order['id']]);
+            Response::error(self::cancelBlockedMessage((string) $now->fetchColumn()), 409);
+        }
         self::restockOrder($db, (int) $order['id']);
-        Response::success(null, 'Order cancelled');
+
+        // Tell the customer (with refund note if prepaid) and alert the store so it isn't packed/shipped.
+        Mailer::queueOrderEmail((int) $order['id'], 'cancelled');
+        self::notifyAdminCancelled((int) $order['id']);
+
+        Response::success(['status' => 'cancelled'], 'Order cancelled');
+    }
+
+    /** Customers may cancel only until the parcel has shipped. */
+    public static function customerCanCancel(string $status): bool
+    {
+        return !in_array($status, ['shipped', 'delivered', 'cancelled'], true);
+    }
+
+    private static function cancelBlockedMessage(string $status): string
+    {
+        return match ($status) {
+            'shipped'   => 'This order has already been shipped and can no longer be cancelled. You can request a return after delivery.',
+            'delivered' => 'This order has been delivered and can no longer be cancelled. You can request a return instead.',
+            'cancelled' => 'This order is already cancelled.',
+            default     => 'This order can no longer be cancelled.',
+        };
+    }
+
+    /** Store alert when a customer cancels — so nobody packs or ships it. */
+    public static function notifyAdminCancelled(int $orderId): void
+    {
+        $to = Mailer::adminInbox();
+        if ($to === '') {
+            return;
+        }
+        try {
+            if ($m = Mailer::adminOrderEmail($orderId, 'cancelled')) {
+                Mailer::queue($to, $m['subject'], $m['html']);
+            }
+        } catch (\Throwable $e) {
+            error_log('Admin cancel email failed: ' . $e->getMessage());
+        }
     }
 
     /** Return every item of an order to stock and decrement sold counts. */
@@ -480,7 +534,11 @@ class OrderController
     // ================= shared order building =================
 
     /** Builds order line items + totals from the user's cart. */
-    public static function buildOrderData(int $userId, array $body): array
+    /**
+     * Server-side pricing of the user's cart (the single source of truth for totals).
+     * $requireAddress = false lets the checkout quote price the cart before an address is picked.
+     */
+    public static function buildOrderData(int $userId, array $body, bool $requireAddress = true): array
     {
         $db = db();
         $stmt = $db->prepare(
@@ -531,7 +589,7 @@ class OrderController
             $a->execute([(int) $body['address_id'], $userId]);
             $address = $a->fetch() ?: null;
         }
-        if (!$address) {
+        if (!$address && $requireAddress) {
             Response::error('Shipping address is required', 422);
         }
 
@@ -670,11 +728,7 @@ class OrderController
         $u = $db->prepare('SELECT name, email, phone FROM users WHERE id=?');
         $u->execute([$userId]);
         if ($user = $u->fetch()) {
-            Mailer::queue(
-                $user['email'],
-                Mailer::brand() . ' · Order ' . $d['order_number'] . ' confirmed',
-                Mailer::orderPlacedTemplate($user['name'], $d['order_number'], (float) $d['total'])
-            );
+            Mailer::queueOrderEmail($orderId, 'placed'); // full receipt rendered from the saved order
             Automation::logSent('order_confirmation', $orderId, $userId, $user['email']);
         }
         self::notifyAdminNewOrder($orderId);
@@ -692,38 +746,12 @@ class OrderController
             return;
         }
         try {
-            $db = db();
-            $q = $db->prepare(
-                'SELECT o.order_number, o.total, o.payment_method, o.payment_status, o.shipping_address,
-                        u.name AS customer, u.email, u.phone
-                 FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?'
-            );
-            $q->execute([$orderId]);
-            $o = $q->fetch();
-            if (!$o) {
-                return;
+            if ($m = Mailer::adminOrderEmail($orderId)) {
+                Mailer::queue($to, $m['subject'], $m['html']);
             }
-            $it = $db->prepare('SELECT product_name, quantity, price, line_total FROM order_items WHERE order_id=?');
-            $it->execute([$orderId]);
-            $addr = json_decode($o['shipping_address'] ?? 'null', true) ?: [];
-
-            Mailer::queue(
-                $to,
-                Mailer::brand() . ' · New order ' . $o['order_number'] . ' — ₹' . number_format((float) $o['total'], 2),
-                Mailer::newOrderAdminTemplate(
-                    $o['order_number'],
-                    (string) ($addr['full_name'] ?? $o['customer']),
-                    (string) ($addr['phone'] ?? $o['phone'] ?? ''),
-                    (string) $o['email'],
-                    (float) $o['total'],
-                    (string) $o['payment_method'],
-                    (string) $o['payment_status'],
-                    $it->fetchAll(),
-                    $addr
-                )
-            );
         } catch (\Throwable $e) {
             // Never let a notification failure affect the order itself.
+            error_log('Admin new-order email failed: ' . $e->getMessage());
         }
     }
 
@@ -768,11 +796,7 @@ class OrderController
         $u = $db->prepare('SELECT name, email FROM users WHERE id=?');
         $u->execute([$uid]);
         if ($user = $u->fetch()) {
-            Mailer::queue(
-                $user['email'],
-                Mailer::brand() . ' · Order ' . $order['order_number'] . ' confirmed',
-                Mailer::orderPlacedTemplate($user['name'], $order['order_number'], (float) $order['total'])
-            );
+            Mailer::queueOrderEmail($orderId, 'placed');
             Automation::logSent('order_confirmation', $orderId, $uid, $user['email']);
         }
         // A UPI order becomes real only on approval — alert the store now.

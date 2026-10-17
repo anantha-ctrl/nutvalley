@@ -76,14 +76,14 @@ function HeroCarousel({ slides, fallbackEyebrow }) {
     <section
       onMouseEnter={() => { hover.current = true; }}
       onMouseLeave={() => { hover.current = false; }}
-      className="relative flex h-[100svh] min-h-[620px] items-center justify-center overflow-hidden bg-[#fbf4f2] dark:bg-[#fbf4f2]"
+      className="relative flex h-[100svh] min-h-[620px] items-center justify-center overflow-hidden bg-[#fbf4f2] pb-14 pt-24 dark:bg-[#fbf4f2] sm:pt-[7.5rem]"
       style={{ perspective: '1900px' }}
     >
       {/* ambient glow */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[42rem] w-[42rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-luxe-gold/10 blur-[130px]" />
 
-      {/* 3D stage */}
-      <div className="relative h-[78%] w-[74vw] max-w-[1180px]" style={{ transformStyle: 'preserve-3d' }}>
+      {/* 3D stage — section top padding clears the fixed header */}
+      <div className="relative h-full w-[74vw] max-w-[1180px]" style={{ transformStyle: 'preserve-3d' }}>
         {slides.map((b, idx) => {
           const off = offsetOf(idx);
           const abs = Math.abs(off);
@@ -112,14 +112,17 @@ function HeroCarousel({ slides, fallbackEyebrow }) {
                 animate={{ scale: !reduce && off === 0 ? 1.07 : 1 }}
                 transition={{ duration: 6, ease: 'linear' }}
               />
-              {/* readable scrim — heavier on side cards so the active one pops */}
-              <div className="absolute inset-0 bg-black/35" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-black/10" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-              <motion.div className="absolute inset-0 bg-luxe-ink" animate={{ opacity: off === 0 ? 0 : 0.35 }} transition={{ duration: 0.85 }} />
 
-              {/* copy on the active card */}
-              <div className="absolute inset-0 flex items-center px-7 sm:px-12">
+              {/* light blush fade along the bottom only — keeps the image (and any
+                  artwork/logo in it) clear while giving the copy a readable base */}
+              <motion.div
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-luxe-bg/95 via-luxe-bg/60 to-transparent"
+                animate={{ opacity: off === 0 ? 1 : 0 }}
+                transition={{ duration: 0.85 }}
+              />
+
+              {/* copy on the active card — anchored bottom-left, away from the image's focal area */}
+              <div className="absolute inset-0 flex items-end px-7 pb-8 sm:px-12 sm:pb-12">
                 <SlideCopy b={b} active={off === 0} fallbackEyebrow={fallbackEyebrow} />
               </div>
             </motion.div>
@@ -132,13 +135,13 @@ function HeroCarousel({ slides, fallbackEyebrow }) {
         <>
           <button
             onClick={() => go(i - 1)} aria-label="Previous slide"
-            className="absolute left-3 top-1/2 z-30 -translate-y-1/2 rounded-full border border-white/25 bg-black/25 p-2.5 text-white backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold hover:text-luxe-ink sm:left-6"
+            className="absolute left-3 top-[calc(50%+2rem)] z-30 -translate-y-1/2 rounded-full border border-white/25 bg-black/25 p-2.5 text-white backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold hover:text-luxe-ink sm:left-6"
           >
             <ChevronLeft size={20} />
           </button>
           <button
             onClick={() => go(i + 1)} aria-label="Next slide"
-            className="absolute right-3 top-1/2 z-30 -translate-y-1/2 rounded-full border border-white/25 bg-black/25 p-2.5 text-white backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold hover:text-luxe-ink sm:right-6"
+            className="absolute right-3 top-[calc(50%+2rem)] z-30 -translate-y-1/2 rounded-full border border-white/25 bg-black/25 p-2.5 text-white backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold hover:text-luxe-ink sm:right-6"
           >
             <ChevronRight size={20} />
           </button>
@@ -165,35 +168,41 @@ function SlideCopy({ b, active, fallbackEyebrow }) {
   });
 
   return (
-    <div className="max-w-2xl text-white">
+    // No card — the blush fade at the bottom of the slide plus a soft glow keeps the maroon copy readable.
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: active ? 1 : 0 }}
+      transition={{ duration: 0.5, ease: EASE }}
+      className="max-w-xl text-ink [text-shadow:0_0_18px_rgba(255,255,255,0.9),0_0_4px_rgba(255,255,255,0.7)]"
+    >
       {fallbackEyebrow && (
-        <motion.p {...anim(0.15)} className="mb-5 flex items-center gap-2 text-[11px] uppercase tracking-[0.35em] text-luxe-gold sm:text-xs">
+        <motion.p {...anim(0.15)} className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-luxe-bronze sm:text-xs">
           <Sparkles size={14} /> {fallbackEyebrow}
         </motion.p>
       )}
 
-      <motion.h1 {...anim(0.28)} className="font-display text-5xl font-bold leading-[0.95] sm:text-6xl lg:text-7xl">
+      <motion.h1 {...anim(0.28)} className="font-display text-3xl font-bold leading-[1] sm:text-4xl lg:text-5xl">
         {b.title}
       </motion.h1>
 
       {b.subtitle && (
-        <motion.p {...anim(0.4)} className="mt-5 max-w-md text-sm text-white/75 sm:text-lg">
+        <motion.p {...anim(0.4)} className="mt-3 max-w-md text-sm font-medium text-ink/80 sm:text-base">
           {b.subtitle}
         </motion.p>
       )}
 
       {b.cta_label && b.cta_link && (
-        <motion.div {...anim(0.55)} className="mt-8 flex flex-wrap items-center gap-4">
+        <motion.div {...anim(0.55)} className="mt-5 flex flex-wrap items-center gap-4">
           <MagneticButton
             to={b.cta_link}
-            className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-ink shadow-luxe transition hover:bg-luxe-gold"
+            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-white shadow-luxe [text-shadow:none] transition hover:bg-luxe-gold hover:text-ink"
           >
             {b.cta_label}
             <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
           </MagneticButton>
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -222,9 +231,6 @@ function EditorialHero({ c }) {
     <section ref={ref} onMouseMove={onMove} className="relative h-[100svh] min-h-[620px] overflow-hidden bg-[#fbf4f2] dark:bg-[#fbf4f2]">
       <motion.div style={{ y: imgY, scale: imgScale }} className="absolute inset-0">
         <img src={c.hero_image || IMG.hero} alt="" className="h-full w-full object-cover object-[center_30%]" />
-        <div className="absolute inset-0 bg-black/35" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
       </motion.div>
 
       <motion.div style={{ x: sx, y: sy }} className="pointer-events-none absolute inset-0">
@@ -233,7 +239,7 @@ function EditorialHero({ c }) {
       </motion.div>
 
       <motion.div style={{ y: textY, opacity: fade }} className="relative z-10 mx-auto flex h-full max-w-[1400px] items-center px-6 sm:px-10 lg:px-12">
-        <div className="max-w-3xl pt-16 text-white">
+        <div className="max-w-3xl pt-16 text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)]">
           <motion.p
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}
             className="mb-6 flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-luxe-gold"

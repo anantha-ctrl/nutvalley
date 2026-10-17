@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { optimizeImages } from '../utils/cdn';
 
 // Resolve one API origin for every page. A production build must set
 // VITE_API_URL (for example https://novoclothing.in/backend); when omitted,
@@ -61,7 +62,15 @@ const forceLogout = () => {
 
 // Normalize errors + handle 401 globally + auto-fallback for blocked PUT/DELETE (403/404/405)
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Storefront: serve every Cloudinary image resized + WebP/AVIF (≈10× lighter).
+    // Admin responses are left untouched so edit forms never save rewritten URLs.
+    const url = res.config?.url || '';
+    if (!url.startsWith('/api/admin') && res.data && typeof res.data === 'object') {
+      optimizeImages(res.data);
+    }
+    return res;
+  },
   async (error) => {
     const status = error.response?.status;
     const originalConfig = error.config || {};

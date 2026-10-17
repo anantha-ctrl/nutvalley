@@ -16,10 +16,21 @@ export default function OrderDetail() {
 
   const load = () => api.get(`/api/orders/${id}`).then((r) => setOrder(r.data.data)).catch(() => {});
   useEffect(() => { load(); }, [id]);
+  // Keep status live — if the store ships it while this page is open, the Cancel button disappears.
+  useEffect(() => {
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
+    const t = setInterval(load, 30000);
+    return () => { window.removeEventListener('focus', onFocus); clearInterval(t); };
+  }, [id]);
 
+  const [cancelling, setCancelling] = useState(false);
   const cancel = async () => {
-    try { await api.put(`/api/orders/${id}/cancel`); toast.success('Order cancelled'); load(); }
-    catch (e) { toast.error(e.message); }
+    if (!window.confirm(`Cancel order ${order.order_number}? This can't be undone.`)) return;
+    setCancelling(true);
+    try { await api.put(`/api/orders/${id}/cancel`); toast.success('Order cancelled'); }
+    catch (e) { toast.error(e.message); } // e.g. "already been shipped" — reload below hides the button
+    finally { setCancelling(false); load(); }
   };
 
   const reorder = async () => {
@@ -112,10 +123,16 @@ export default function OrderDetail() {
           <button onClick={reorder} className="btn-gold w-full">
             <RotateCcw size={16} /> Reorder
           </button>
-          {canCancel && (
-            <button onClick={cancel} className="btn-outline w-full !border-rose-500/50 !text-rose-500">
-              <X size={16} /> Cancel Order
+          {canCancel ? (
+            <button onClick={cancel} disabled={cancelling} className="btn-outline w-full !border-rose-500/50 !text-rose-500 disabled:opacity-60">
+              <X size={16} /> {cancelling ? 'Cancelling…' : 'Cancel Order'}
             </button>
+          ) : ['shipped', 'delivered'].includes(order.status) && (
+            <p className="rounded-xl bg-black/5 px-3 py-2 text-center text-xs text-gray-500 dark:bg-white/5 dark:text-gray-400">
+              {order.status === 'shipped'
+                ? 'This order has shipped and can no longer be cancelled. You can request a return after delivery.'
+                : 'Delivered orders can’t be cancelled — use Request a Return below if needed.'}
+            </p>
           )}
           {order.status === 'delivered' && <ReturnPanel order={order} onChange={load} />}
         </div>

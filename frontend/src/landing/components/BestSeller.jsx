@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, ShoppingBag, Eye, Star } from 'lucide-react';
 import api from '../../api/client';
+import { discountPct } from '../../utils/format';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import Reveal from '../lib/Reveal';
@@ -72,7 +73,7 @@ function LuxeCard({ product, onQuickView }) {
   const { add, loading } = useCart();
   const { has, toggle } = useWishlist();
   const wished = has(product.id);
-  const off = product.mrp > product.price ? Math.round((1 - product.price / product.mrp) * 100) : 0;
+  const off = discountPct(product.price, product.mrp);
 
   return (
     <div className="group relative">

@@ -31,6 +31,20 @@ export default function Checkout() {
   const [txnId, setTxnId] = useState('');
   const [screenshot, setScreenshot] = useState('');
 
+  // Registration details (name / email / phone), fresh from the DB — used to pre-fill the address form.
+  const [profile, setProfile] = useState(null);
+  useEffect(() => {
+    api.get('/api/auth/me').then((r) => setProfile(r.data.data)).catch(() => setProfile(user || null));
+  }, []);
+  useEffect(() => {
+    if (!showForm || !profile) return;
+    setForm((f) => ({
+      ...f,
+      full_name: f.full_name || profile.name || '',
+      phone: f.phone || profile.phone || '',
+    }));
+  }, [showForm, profile]);
+
   useEffect(() => {
     if (!cart.items.length) navigate('/cart');
     loadAddresses();
@@ -77,25 +91,39 @@ export default function Checkout() {
       ? `${Number(o.value)}% OFF${o.max_discount ? ` up to ${inr(o.max_discount)}` : ''}`
       : `${inr(o.value)} OFF`;
 
-  const subtotal = cart.items.reduce((s, it) => s + (Number(it.line_total) || (Number(it.unit_price || it.price) * it.quantity)), 0) || Number(cart.summary?.subtotal || 0);
-  const itemsShippingFee = cart.items.reduce((s, it) => {
-    const fee = Number(it.shipping_fee) || 0;
-    const isFree = fee > 0 ? 0 : (it.is_free_shipping != null ? Number(it.is_free_shipping) : 1);
-    if (!isFree) return s + fee;
-    return s;
-  }, 0) || Number(cart.summary?.shipping_fee || 0);
-
-  const shipping = itemsShippingFee;
-  const total = Math.max(0, subtotal - discount + shipping);
-
-  // Payment rule (live from the DB): COD is offered only up to cod_max; Razorpay is
-  // always available. Above the threshold, Razorpay is the only option.
-  const codMax = Number(payInfo?.cod_max_amount ?? 1000);
-  const codAllowed = total <= codMax;
+  // Live quote from the server: prices, coupon, shipping and payment rules all come
+  // from the DB, so the page always shows exactly what the order will be charged.
+  const [quote, setQuote] = useState(null);
+  const cartKey = cart.items.map((it) => `${it.id}:${it.quantity}`).join(',');
+  const fetchQuote = () =>
+    api.post('/api/checkout/quote', { address_id: selected || undefined, coupon_code: appliedCode || undefined })
+      .then((r) => { setQuote(r.data.data); setDiscount(Number(r.data.data.discount) || 0); })
+      .catch((err) => {
+        // Coupon no longer valid (expired / min order not met) — drop it and re-price.
+        if (appliedCode) { toast.error(err.message); setAppliedCode(''); setDiscount(0); }
+      });
+  useEffect(() => { if (cart.items.length) fetchQuote(); }, [cartKey, appliedCode, selected]);
   useEffect(() => {
-    // If COD is no longer allowed (cart crossed the threshold), fall back to Razorpay.
-    if (!codAllowed && method === 'cod') setMethod('razorpay');
-  }, [codAllowed]);
+    // Keep prices/stock rules fresh while the customer sits on the page.
+    const onFocus = () => cart.items.length && fetchQuote();
+    window.addEventListener('focus', onFocus);
+    const id = setInterval(onFocus, 30000);
+    return () => { window.removeEventListener('focus', onFocus); clearInterval(id); };
+  }, [cartKey, appliedCode, selected]);
+
+  const subtotal = Number(quote?.subtotal ?? cart.summary?.subtotal ?? 0);
+  const shipping = Number(quote?.shipping_fee ?? cart.summary?.shipping_fee ?? 0);
+  const total = Number(quote?.total ?? Math.max(0, subtotal - discount + shipping));
+
+  // Payment rule (live from the DB): COD up to cod_max (0 = no limit); Razorpay always.
+  const codMax = Number(quote?.cod_max ?? 0);
+  const codAllowed = quote ? !!quote.cod_allowed : true;
+  const onlineAvailable = quote ? quote.online_available !== false : true;
+  useEffect(() => {
+    // Steer to whichever method is actually usable right now.
+    if (!codAllowed && method === 'cod' && onlineAvailable) setMethod('razorpay');
+    if (!onlineAvailable && method === 'razorpay' && codAllowed) setMethod('cod');
+  }, [codAllowed, onlineAvailable]);
 
   // Build the UPI intent + generate a QR that encodes the exact payable amount.
   const upiEnabled = !!payInfo?.upi_enabled;
@@ -144,9 +172,9 @@ export default function Checkout() {
   const payWithRazorpay = async (payload) => {
     const { data } = await api.post('/api/checkout/create-order', payload);
     const d = data.data;
-    // No API keys on the server -> test mode: finalize without the live gateway.
+    // No API keys on the server -> test mode (decided server-side): finalize without the gateway.
     if (d.is_test || !d.razorpay_key) {
-      await api.post('/api/checkout/verify', { order_id: d.order_id, is_test: true });
+      await api.post('/api/checkout/verify', { order_id: d.order_id });
       toast.success('Order placed (test mode — add Razorpay keys for live payments)');
       refresh();
       return navigate(`/order-success/${d.order_id}`);
@@ -186,7 +214,7 @@ export default function Checkout() {
     try {
       const payload = {
         address_id: selected,
-        coupon_code: discount ? coupon : undefined,
+        coupon_code: appliedCode || undefined,
       };
 
       if (method === 'razorpay') { await payWithRazorpay(payload); return; }
@@ -256,13 +284,19 @@ export default function Checkout() {
 
             {showForm && (
               <form onSubmit={saveAddress} className="mt-4 grid gap-3 sm:grid-cols-2">
-                <input required className="input" placeholder="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-                <input required className="input" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                <input required className="input sm:col-span-2" placeholder="Address Line 1" value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} />
-                <input className="input sm:col-span-2" placeholder="Address Line 2 (optional)" value={form.line2} onChange={(e) => setForm({ ...form, line2: e.target.value })} />
-                <input required className="input" placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-                <input required className="input" placeholder="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-                <input required className="input" placeholder="Pincode" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} />
+                {profile?.email && (
+                  <p className="text-xs text-gray-400 sm:col-span-2">
+                    Ordering as <span className="font-medium text-gray-600 dark:text-gray-200">{profile.name}</span> · {profile.email}
+                    {' '}— name &amp; phone filled from your account, edit if delivering to someone else.
+                  </p>
+                )}
+                <input required autoComplete="name" className="input" placeholder="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+                <input required type="tel" autoComplete="tel" inputMode="numeric" pattern="[0-9+ ]{10,15}" title="Enter a valid phone number" className="input" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <input required autoComplete="address-line1" className="input sm:col-span-2" placeholder="Address Line 1" value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} />
+                <input autoComplete="address-line2" className="input sm:col-span-2" placeholder="Address Line 2 (optional)" value={form.line2} onChange={(e) => setForm({ ...form, line2: e.target.value })} />
+                <input required autoComplete="address-level2" className="input" placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                <input required autoComplete="address-level1" className="input" placeholder="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+                <input required autoComplete="postal-code" inputMode="numeric" pattern="[0-9]{6}" title="6-digit pincode" className="input" placeholder="Pincode" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} />
                 <button className="btn-gold sm:col-span-2">Save Address</button>
               </form>
             )}
@@ -272,21 +306,32 @@ export default function Checkout() {
           <section className="card p-6">
             <h2 className="mb-1 text-lg font-semibold">Payment Method</h2>
             <p className="mb-4 text-xs text-gray-400">
-              {codAllowed
-                ? `Cash on Delivery or pay online. (COD available up to ${inr(codMax)}.)`
-                : `Orders above ${inr(codMax)} are paid online (Razorpay) only.`}
+              {!onlineAvailable
+                ? 'Online payment is temporarily unavailable — please use Cash on Delivery.'
+                : !codAllowed
+                ?`Cash on Delivery is available only for orders up to ${inr(codMax)} — please pay online.`
+                : codMax > 0
+                  ? `Cash on Delivery or pay online. (COD available up to ${inr(codMax)}.)`
+                  : 'Cash on Delivery or pay online.'}
             </p>
-            <div className={`grid gap-3 ${codAllowed ? 'sm:grid-cols-2' : ''}`}>
-              <PayOption active={method === 'razorpay'} onClick={() => setMethod('razorpay')} icon={CreditCard}
-                title="Card / UPI / Netbanking" subtitle="Secure payment via Razorpay" />
-              {codAllowed && (
-                <PayOption active={method === 'cod'} onClick={() => setMethod('cod')} icon={Banknote}
-                  title="Cash on Delivery" subtitle="Pay when you receive" />
-              )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <PayOption active={method === 'razorpay'} onClick={() => setMethod('razorpay')} icon={CreditCard} disabled={!onlineAvailable}
+                title="Card / UPI / Netbanking" subtitle={onlineAvailable ? 'Secure payment via Razorpay' : 'Temporarily unavailable'} />
+              <PayOption active={method === 'cod'} onClick={() => setMethod('cod')} icon={Banknote} disabled={!codAllowed}
+                title="Cash on Delivery" subtitle={codAllowed ? 'Pay when you receive' : `Only up to ${inr(codMax)}`} />
             </div>
 
+            {method === 'cod' && codAllowed && (
+              <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/[0.03] p-5">
+                <p className="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-300">
+                  <Banknote size={16} className="mt-0.5 shrink-0 text-gold" />
+                  Pay {inr(total)} in cash (or UPI) to the delivery partner when your order arrives.
+                </p>
+              </div>
+            )}
+
             {/* Razorpay panel */}
-            {method === 'razorpay' && (
+            {method === 'razorpay' && onlineAvailable && (
               <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/[0.03] p-5">
                 <p className="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-300">
                   <ShieldCheck size={16} className="mt-0.5 shrink-0 text-gold" />
@@ -459,9 +504,9 @@ const ReadonlyField = ({ label, value }) => (
   </div>
 );
 
-const PayOption = ({ active, onClick, icon: Icon, title, subtitle }) => (
-  <button onClick={onClick}
-    className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${active ? 'border-gold bg-gold/5' : 'border-black/10 dark:border-white/10'}`}>
+const PayOption = ({ active, onClick, icon: Icon, title, subtitle, disabled }) => (
+  <button type="button" onClick={onClick} disabled={disabled}
+    className={`flex items-start gap-3 rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${active ? 'border-gold bg-gold/5' : 'border-black/10 hover:border-gold/50 dark:border-white/10'}`}>
     <Icon size={22} className={active ? 'text-gold' : 'text-gray-400'} />
     <div><p className="font-semibold">{title}</p><p className="text-xs text-gray-400">{subtitle}</p></div>
   </button>

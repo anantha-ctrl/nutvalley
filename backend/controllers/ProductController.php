@@ -231,7 +231,87 @@ class ProductController
              ORDER BY p.sold_count DESC LIMIT 8"
         );
         $rel->execute([$base['category_id'], $base['id']]);
-        Response::success(array_map([$this, 'castProduct'], $rel->fetchAll()));
+        $rows = $rel->fetchAll();
+
+        // Thin category → top up with best-selling / newest products from the rest of the store.
+        if (count($rows) < 4) {
+            $exclude = array_merge([(int) $base['id']], array_map(fn ($r) => (int) $r['id'], $rows));
+            $marks = implode(',', array_fill(0, count($exclude), '?'));
+            $more = $db->prepare(
+                "SELECT p.*, (SELECT image_url FROM product_images WHERE product_id=p.id ORDER BY is_primary DESC LIMIT 1) AS image
+                 FROM products p WHERE p.is_active=1 AND p.id NOT IN ($marks)
+                 ORDER BY p.sold_count DESC, p.created_at DESC LIMIT " . (8 - count($rows))
+            );
+            $more->execute($exclude);
+            $rows = array_merge($rows, $more->fetchAll());
+        }
+        Response::success(array_map([$this, 'castProduct'], $rows));
+    }
+
+    /**
+     * GET /share/product/{slug} — the link people share. WhatsApp / Facebook / X
+     * read its Open Graph tags (photo, name, price, description) to build the
+     * preview card; real visitors are redirected straight to the product page.
+     */
+    public function share(array $p): void
+    {
+        $stmt = db()->prepare(
+            'SELECT p.id, p.name, p.slug, p.price, p.mrp, p.description,
+                    (SELECT image_url FROM product_images WHERE product_id=p.id ORDER BY is_primary DESC LIMIT 1) AS image
+             FROM products p WHERE p.slug=? AND p.is_active=1'
+        );
+        $stmt->execute([(string) ($p['slug'] ?? '')]);
+        $prod = $stmt->fetch();
+
+        $front = rtrim((string) env('FRONTEND_URL', 'http://localhost:5190'), '/');
+        $target = $prod ? $front . '/product/' . rawurlencode($prod['slug']) : $front . '/shop';
+        $api = MiscController::apiBase();
+
+        $store = Setting::get('store_name', 'Beadsboutique');
+        $title = $prod ? $prod['name'] . ' — ₹' . number_format((float) $prod['price']) : $store;
+        $desc = '';
+        $img = '';
+        if ($prod) {
+            $mrp = (float) $prod['mrp'];
+            $price = (float) $prod['price'];
+            if ($mrp > $price) {
+                $desc = 'MRP ₹' . number_format($mrp) . ' · ' . (int) floor(100 * ($mrp - $price) / $mrp) . '% off. ';
+            }
+            $desc .= mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags((string) $prod['description']))), 0, 180);
+            // Hosted images are used directly; inline (data:) images go through the thumb passthrough.
+            $img = preg_match('#^https?://#i', (string) $prod['image']) ? $prod['image'] : $api . '/api/products/' . (int) $prod['id'] . '/thumb';
+            // WhatsApp/Facebook previews are most reliable with a ~1200px JPG — let Cloudinary convert (.webp → .jpg).
+            if (str_contains($img, 'res.cloudinary.com') && str_contains($img, '/image/upload/')) {
+                $img = preg_replace('#\.(webp|avif|heic)$#i', '.jpg', str_replace('/image/upload/', '/image/upload/f_jpg,q_auto,w_1200/', $img));
+            }
+        }
+
+        $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        $self = $api . '/share/product/' . rawurlencode((string) ($p['slug'] ?? ''));
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: public, max-age=300');
+        echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            . '<title>' . $e($title) . '</title>'
+            . '<meta name="description" content="' . $e($desc) . '">'
+            . '<meta property="og:type" content="product">'
+            . '<meta property="og:site_name" content="' . $e($store) . '">'
+            . '<meta property="og:title" content="' . $e($title) . '">'
+            . '<meta property="og:description" content="' . $e($desc) . '">'
+            . '<meta property="og:url" content="' . $e($self) . '">'
+            . ($img ? '<meta property="og:image" content="' . $e($img) . '"><meta property="og:image:alt" content="' . $e($prod['name']) . '">' : '')
+            . '<meta name="twitter:card" content="summary_large_image">'
+            . '<meta name="twitter:title" content="' . $e($title) . '">'
+            . '<meta name="twitter:description" content="' . $e($desc) . '">'
+            . ($img ? '<meta name="twitter:image" content="' . $e($img) . '">' : '')
+            . '<meta http-equiv="refresh" content="0;url=' . $e($target) . '">'
+            . '<link rel="canonical" href="' . $e($target) . '">'
+            . '</head><body><script>location.replace(' . json_encode($target) . ');</script>'
+            . '<a href="' . $e($target) . '">' . $e($title) . '</a></body></html>';
+        exit;
     }
 
     /** GET /api/products/{slug}/frequently-bought — co-purchased products,
@@ -316,7 +396,7 @@ class ProductController
             $row['specifications'] = json_decode($row['specifications'], true);
         }
         if (isset($row['mrp'], $row['price']) && $row['mrp'] > 0) {
-            $row['discount_pct'] = (int) round(100 * ($row['mrp'] - $row['price']) / $row['mrp']);
+            $row['discount_pct'] = (int) floor(100 * ($row['mrp'] - $row['price']) / $row['mrp']); // floor: never show -100% unless free
         }
         return $row;
     }

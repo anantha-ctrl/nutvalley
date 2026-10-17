@@ -1,18 +1,13 @@
-import QRCode from 'qrcode';
 import { inr, dateFmt } from './format';
 
 /**
  * Opens a clean, print-ready invoice in a new window and triggers the print
- * dialog (users can "Save as PDF" from there). Adds a delivery-verification QR
- * that encodes a signed link — scanning it confirms the order live from the DB.
- *
- * Async because the QR is generated as a data URI; the popup is opened first
- * (inside the click gesture) so it isn't blocked while the QR renders.
+ * dialog (users can "Save as PDF" from there). Built synchronously from the
+ * order passed in, so it opens instantly.
  */
-export async function printInvoice(order) {
+export function printInvoice(order) {
   const w = window.open('', '_blank', 'width=820,height=900');
   if (!w) return;
-  w.document.write('<!doctype html><title>Invoice…</title><body style="font:14px Arial;padding:40px;color:#888">Generating invoice…</body>');
 
   const a = order.shipping_address || {};
   const rows = order.items.map((it) => `
@@ -23,27 +18,7 @@ export async function printInvoice(order) {
       <td class="right">${inr(it.line_total)}</td>
     </tr>`).join('');
 
-  const logoUrl = `${window.location.origin}/logo.png`;
-
-  // Delivery-verification QR (signed link → live order lookup on scan).
-  let verifyBlock = '';
-  if (order.verify_token) {
-    const verifyUrl = `${window.location.origin}/verify-order/${order.id}?t=${order.verify_token}`;
-    let qrImg = '';
-    try {
-      qrImg = await QRCode.toDataURL(verifyUrl, { width: 150, margin: 1, color: { dark: '#1a1a1a', light: '#ffffff' } });
-    } catch { /* QR is best-effort — invoice still prints without it */ }
-    if (qrImg) {
-      verifyBlock = `
-    <div class="verify">
-      <img src="${qrImg}" alt="Verification QR" />
-      <div>
-        <div class="verify-title">Delivery Verification</div>
-        <div class="muted">Scan to verify this order &amp; its items<br>against the live store record.</div>
-      </div>
-    </div>`;
-    }
-  }
+  const logoUrl = `${window.location.origin}/logo.webp`; // 56 KB vs 490 KB png — print opens faster
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Invoice ${order.order_number}</title>
@@ -63,10 +38,6 @@ export async function printInvoice(order) {
   .totals div { display: flex; justify-content: space-between; padding: 6px 0; }
   .totals .grand { border-top: 2px solid #b8745a; margin-top: 6px; padding-top: 10px; font-size: 17px; font-weight: 800; }
   .badge { display:inline-block; padding:3px 10px; border-radius:20px; background:#e7f6ec; color:#1a8a4a; font-size:12px; font-weight:600; }
-  .below { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-top:18px; }
-  .verify { display:flex; align-items:center; gap:14px; border:1px solid #eedfdc; background:#fbf4f2; border-radius:10px; padding:12px 14px; max-width:340px; }
-  .verify img { width:96px; height:96px; }
-  .verify-title { font-weight:700; font-size:13px; color:#1a1a1a; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
   .foot { margin-top: 40px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 16px; }
 </style></head>
 <body>
@@ -103,14 +74,11 @@ export async function printInvoice(order) {
     <tbody>${rows}</tbody>
   </table>
 
-  <div class="below">
-    ${verifyBlock}
-    <div class="totals">
+  <div class="totals">
       <div><span>Subtotal</span><span>${inr(order.subtotal)}</span></div>
       ${order.discount > 0 ? `<div><span>Discount${order.coupon_code ? ' (' + order.coupon_code + ')' : ''}</span><span>-${inr(order.discount)}</span></div>` : ''}
       <div><span>Shipping</span><span>${order.shipping_fee ? inr(order.shipping_fee) : 'Free'}</span></div>
       <div class="grand"><span>Total</span><span>${inr(order.total)}</span></div>
-    </div>
   </div>
 
   <div class="foot">Thank you for shopping with Beadsboutique · beadsboutiquejewellery@gmail.com</div>
@@ -135,7 +103,7 @@ export function printBill(bill, config = {}) {
       <td class="right">${money(i.price)}</td>
       <td class="right">${money(i.line_total)}</td>
     </tr>`).join('');
-  const logoUrl = `${window.location.origin}/logo.png`;
+  const logoUrl = `${window.location.origin}/logo.webp`; // 56 KB vs 490 KB png — print opens faster
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Invoice ${escapeHtml(bill.bill_number)}</title>

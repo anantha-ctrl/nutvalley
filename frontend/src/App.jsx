@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -64,6 +64,12 @@ const AUTH_ROUTES = ['/login', '/register', '/verify-otp', '/forgot-password', '
 export default function App() {
   const { pathname } = useLocation();
   const { user } = useAuth();
+
+  // SPA navigation keeps the previous page's scroll offset — start every new
+  // page (e.g. a category opened from the footer) at the top.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
 
   // A cashier is locked to the billing counter: every other route (storefront,
   // admin, static pages) bounces to /cashier. Logging out clears `user`, which

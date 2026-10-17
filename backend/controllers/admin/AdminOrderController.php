@@ -171,28 +171,27 @@ class AdminOrderController
             try { Automation::onDelivered($id); } catch (\Throwable $e) {}
         }
 
-        // Notify the customer by email about the status change.
-        $info = $db->prepare(
-            'SELECT o.order_number, o.carrier, o.tracking_number, u.name, u.email
-             FROM orders o JOIN users u ON u.id=o.user_id WHERE o.id=?'
-        );
-        $info->execute([$id]);
-        $row = $info->fetch();
+        // Email the customer only when something they care about changed: a new
+        // status, or tracking details added/changed on a shipped order (so editing
+        // the carrier box doesn't spam them with duplicate "update" mails).
+        $statusChanged = $newStatus !== $curr['status'];
+        $trackingChanged = $newStatus === 'shipped'
+            && ($newTracking !== $curr['tracking_number'] || $newCarrier !== $curr['carrier'])
+            && ($newTracking || $newCarrier);
+        $notify = ($statusChanged || $trackingChanged) && $newStatus !== 'pending';
 
         // The status change is already committed; answer the admin now and send
         // the customer email after the connection closes (SMTP can take ~20s).
         Response::successThen(
-            ['carrier' => $newCarrier, 'tracking_number' => $newTracking, 'auto_booked' => $autoBooked],
-            $autoBooked ? 'Order status updated — ' . $autoBooked : 'Order status updated',
-            function () use ($row, $newStatus) {
-                if (!$row || empty($row['email'])) {
+            ['carrier' => $newCarrier, 'tracking_number' => $newTracking, 'auto_booked' => $autoBooked, 'customer_notified' => $notify],
+            ($autoBooked ? 'Order status updated — ' . $autoBooked : 'Order status updated') . ($notify ? ' · customer emailed' : ''),
+            function () use ($id, $newStatus, $notify) {
+                if (!$notify) {
                     return;
                 }
-                Mailer::send(
-                    $row['email'],
-                    Mailer::brand() . " · Order {$row['order_number']} update",
-                    Mailer::orderStatusTemplate($row['name'], $row['order_number'], $newStatus, $row['carrier'], $row['tracking_number'])
-                );
+                if ($m = Mailer::orderEmail($id, $newStatus)) { // rendered from the live order row
+                    Mailer::send($m['to'], $m['subject'], $m['html']);
+                }
             }
         );
     }

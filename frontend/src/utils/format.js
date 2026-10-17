@@ -2,7 +2,8 @@ export const inr = (n) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(n) || 0);
 
 export const discountPct = (price, mrp) =>
-  mrp > 0 ? Math.round((100 * (mrp - price)) / mrp) : 0;
+  // Round DOWN so a near-total discount never reads as "-100%" (free).
+  Number(mrp) > Number(price) && Number(mrp) > 0 ? Math.floor((100 * (mrp - price)) / mrp) : 0;
 
 export const dateFmt = (d) =>
   new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });

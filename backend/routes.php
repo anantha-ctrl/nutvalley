@@ -39,6 +39,7 @@ $router->get('/api/products/filters',         'ProductController@filters');
 $router->get('/api/products/{id}/thumb',      'MiscController@productImage'); // public image passthrough
 $router->get('/api/products/{slug}',          'ProductController@show');
 $router->get('/api/products/{slug}/related',  'ProductController@related');
+$router->get('/share/product/{slug}',         'ProductController@share'); // OG preview page for shared links
 $router->get('/api/products/{slug}/frequently-bought', 'ProductController@frequentlyBought');
 
 // ---- Reviews ----
@@ -76,6 +77,7 @@ $router->post('/api/addresses/{id}/delete',   'AddressController@destroy');
 $router->post('/api/coupons/apply', 'CouponController@apply');
 
 // ---- Checkout / Payment ----
+$router->post('/api/checkout/quote',        'CheckoutController@quote'); // live totals + allowed methods
 $router->post('/api/checkout/create-order', 'CheckoutController@createOrder');
 $router->post('/api/checkout/verify',       'CheckoutController@verify');
 
