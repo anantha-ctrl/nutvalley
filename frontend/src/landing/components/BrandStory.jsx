@@ -17,7 +17,7 @@ export default function BrandStory({ quote }) {
   return (
     <section ref={ref} className="relative overflow-hidden bg-luxe-bg py-28 dark:bg-ink sm:py-40">
       {/* soft gradient light */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-luxe-gold/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(196,154,108,0.14),transparent_55%)]" />
 
       <div className="relative mx-auto max-w-5xl px-6 text-center sm:px-10">
         <motion.p

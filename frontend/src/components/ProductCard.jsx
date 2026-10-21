@@ -8,6 +8,7 @@ import { useCart } from '../context/CartContext';
 import { useCompare } from '../context/CompareContext';
 import QuickViewModal from './QuickViewModal';
 import Tilt3D from '../landing/lib/Tilt3D';
+import { productImage } from '../utils/productImage';
 
 export default function ProductCard({ product }) {
   const { has, toggle } = useWishlist();
@@ -29,7 +30,7 @@ export default function ProductCard({ product }) {
       <div className="relative aspect-[3/4] overflow-hidden">
         <Link to={`/product/${product.slug}`}>
           <img
-            src={product.image || 'https://via.placeholder.com/400x533?text=Beadsboutique'}
+            src={productImage(product)}
             alt={product.name}
             loading="lazy"
             className="h-full w-full object-cover transition duration-700 group-hover:scale-110"

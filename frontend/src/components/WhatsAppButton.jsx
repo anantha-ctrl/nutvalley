@@ -20,13 +20,9 @@ export default function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"
-      className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-glow transition hover:scale-110 md:bottom-6 md:right-6"
+      className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_4px_14px_rgba(0,0,0,0.25)] transition duration-200 hover:scale-105 hover:bg-[#20bd5a] md:bottom-6 md:right-6"
     >
       <WhatsAppIcon size={30} />
-      <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-        <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-emerald-500" />
-      </span>
     </a>
   );
 }

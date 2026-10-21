@@ -27,7 +27,7 @@ export default function LandingFooter() {
   ].filter(([, href]) => href);
 
   return (
-    <footer className="bg-luxe-ink text-white">
+    <footer data-nav="dark" className="bg-luxe-ink text-white">
       <div className="mx-auto max-w-[1400px] px-6 py-20 sm:px-10 lg:px-12">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           {/* Brand */}
@@ -64,7 +64,7 @@ export default function LandingFooter() {
         </div>
 
         <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-white/40 sm:flex-row">
-          <p>© {new Date().getFullYear()} Beadsboutique. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Beadsboutique Jewellery. All rights reserved.</p>
           <p>Designed and Developed By <a href="https://cloudhawk.in/">CloudHawk</a>.</p>
         </div>
       </div>

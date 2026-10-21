@@ -55,20 +55,38 @@ export default function LandingNav() {
       ['Create account', '/register', User],
     ];
 
+  const zone = useNavZone();
+  const look = {
+    // Over the hero: no bar at all. The carousel hero is always blush, so ink text;
+    // the editorial (photo) hero is dark, so white text.
+    hero: { bar: 'border-transparent bg-transparent', tone: 'text-luxe-ink', white: false },
+    'hero-dark': { bar: 'border-transparent bg-transparent', tone: 'text-white', white: true },
+    // Over a dark (maroon / photo) section: a matching frosted maroon bar.
+    dark: {
+      bar: 'border-white/10 bg-luxe-ink/85 shadow-[0_8px_30px_-16px_rgba(0,0,0,0.5)] backdrop-blur-xl',
+      tone: 'text-white', white: true,
+    },
+    // Over a light section: frosted white (frosted ink in dark theme).
+    light: {
+      bar: 'border-luxe-ink/10 bg-white/85 shadow-[0_8px_30px_-16px_rgba(17,17,17,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-ink/85',
+      tone: 'text-luxe-ink dark:text-white', white: theme === 'dark',
+    },
+  }[zone] || {};
+
   return (
     <motion.header
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed inset-x-0 top-0 z-50 border-b border-luxe-ink/10 bg-white/95 shadow-[0_8px_30px_-16px_rgba(17,17,17,0.18)] backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-ink/95"
+      className={`fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow,color] duration-300 ${look.bar}`}
     >
       <nav className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
         <Link to="/" aria-label="Beadsboutique home" className="shrink-0">
-          <Logo white={theme === 'dark'} className="h-10" />
+          <Logo white={look.white} className="h-10" />
         </Link>
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-9 text-luxe-ink lg:flex dark:text-white">
+        <ul className={`mx-6 hidden min-w-0 items-center gap-6 whitespace-nowrap transition-colors duration-300 xl:flex 2xl:gap-9 ${look.tone}`}>
           {LINKS.map(([label, to]) => (
             <li key={label}>
               <Link
@@ -83,20 +101,20 @@ export default function LandingNav() {
         </ul>
 
         {/* Icons */}
-        <div className="flex items-center gap-1 text-luxe-ink sm:gap-2 dark:text-white">
-          <Link to="/shop" className="hidden rounded-full p-2.5 transition hover:bg-black/5 sm:block dark:hover:bg-white/10" aria-label="Search"><Search size={19} /></Link>
-          <Link to="/wishlist" className="relative rounded-full p-2.5 transition hover:bg-black/5 dark:hover:bg-white/10" aria-label="Wishlist">
+        <div className={`flex items-center gap-1 transition-colors duration-300 sm:gap-2 ${look.tone}`}>
+          <Link to="/shop" className="hidden rounded-full p-2.5 transition hover:bg-[color-mix(in_srgb,currentColor_10%,transparent)] sm:block" aria-label="Search"><Search size={19} /></Link>
+          <Link to="/wishlist" className="relative rounded-full p-2.5 transition hover:bg-[color-mix(in_srgb,currentColor_10%,transparent)]" aria-label="Wishlist">
             <Heart size={19} />
             {wish > 0 && <Badge>{wish}</Badge>}
           </Link>
-          <Link to="/cart" className="relative rounded-full p-2.5 transition hover:bg-black/5 dark:hover:bg-white/10" aria-label="Cart">
+          <Link to="/cart" className="relative rounded-full p-2.5 transition hover:bg-[color-mix(in_srgb,currentColor_10%,transparent)]" aria-label="Cart">
             <ShoppingBag size={19} />
             {count > 0 && <Badge>{count}</Badge>}
           </Link>
           {/* Account dropdown */}
           <div className="relative hidden sm:block" ref={accRef}>
             <button onClick={() => setAcc((o) => !o)}
-              className="flex items-center gap-1 rounded-full p-2.5 transition hover:bg-black/5 dark:hover:bg-white/10" aria-label="Account">
+              className="flex items-center gap-1 rounded-full p-2.5 transition hover:bg-[color-mix(in_srgb,currentColor_10%,transparent)]" aria-label="Account">
               {user ? <Avatar user={user} size={26} /> : <User size={19} />}
               <ChevronDown size={14} className={`transition ${acc ? 'rotate-180' : ''}`} />
             </button>
@@ -130,7 +148,7 @@ export default function LandingNav() {
               )}
             </AnimatePresence>
           </div>
-          <button onClick={() => setOpen(true)} className="rounded-full p-2.5 transition hover:bg-black/5 dark:hover:bg-white/10 lg:hidden" aria-label="Menu"><Menu size={20} /></button>
+          <button onClick={() => setOpen(true)} className="rounded-full p-2.5 transition hover:bg-[color-mix(in_srgb,currentColor_10%,transparent)] xl:hidden" aria-label="Menu"><Menu size={20} /></button>
         </div>
       </nav>
 
@@ -139,7 +157,7 @@ export default function LandingNav() {
         {open && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 lg:hidden"
+            className="fixed inset-0 z-50 xl:hidden"
           >
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
             <motion.div
@@ -173,6 +191,40 @@ export default function LandingNav() {
       </AnimatePresence>
     </motion.header>
   );
+}
+
+/**
+ * Which kind of section is directly under the fixed header: 'hero', 'hero-dark',
+ * 'dark' or 'light'. Sections opt in with a data-nav attribute; anything unmarked
+ * counts as light. Re-checked on scroll/resize (one rAF per frame at most).
+ */
+function useNavZone() {
+  const [zone, setZone] = useState('hero');
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      // Probe just below the 72px header bar, in the middle of the page.
+      const hit = document.elementsFromPoint(window.innerWidth / 2, 74)
+        .find((el) => !el.closest('header'));
+      setZone(hit?.closest('[data-nav]')?.dataset.nav || 'light');
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(check); };
+    check();
+    // The hero swaps from its loading placeholder to the carousel after the
+    // banners arrive, so re-probe whenever the page's layout changes.
+    const ro = new ResizeObserver(schedule);
+    ro.observe(document.body);
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, []);
+  return zone;
 }
 
 function Badge({ children }) {

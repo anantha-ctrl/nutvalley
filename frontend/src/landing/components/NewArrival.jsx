@@ -12,17 +12,18 @@ export default function NewArrival({ image }) {
   const scale = useTransform(scrollYProgress, [0, 1], [1.2, 1]);
 
   return (
-    <section ref={ref} className="relative h-[92vh] min-h-[560px] overflow-hidden">
+    <section ref={ref} data-nav="dark" className="relative h-[92vh] min-h-[560px] overflow-hidden">
       <motion.div style={{ y, scale }} className="absolute inset-0">
         <img src={image || IMG.newArrival} alt="New arrivals" className="h-full w-full object-cover" />
       </motion.div>
-      <div className="absolute inset-0 bg-gradient-to-t from-luxe-ink/80 via-luxe-ink/25 to-luxe-ink/40" />
+      {/* Bottom shade for mobile (copy sits low), side shade on desktop (copy sits left) */}
+      <div className="absolute inset-0 bg-gradient-to-t from-luxe-ink/90 via-luxe-ink/40 to-luxe-ink/10 sm:bg-gradient-to-r sm:from-luxe-ink/85 sm:via-luxe-ink/45 sm:to-transparent" />
 
-      <div className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-col items-start justify-center px-6 text-white sm:px-10 lg:px-12">
+      <div className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-col items-start justify-end px-6 pb-16 text-white sm:justify-center sm:px-10 sm:pb-0 lg:px-12">
         <motion.p
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="mb-5 text-xs uppercase tracking-[0.5em] text-luxe-gold"
+          className="mb-5 text-xs font-semibold uppercase tracking-[0.5em] text-white/85"
         >
           Just landed
         </motion.p>
@@ -32,7 +33,7 @@ export default function NewArrival({ image }) {
         <motion.p
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           transition={{ delay: 0.25, duration: 0.7 }}
-          className="mt-6 max-w-lg text-lg text-white/75"
+          className="mt-6 max-w-lg text-lg text-white/85"
         >
           Fresh arrivals across necklaces, bracelets, earrings and more. New pieces you'll love.
         </motion.p>

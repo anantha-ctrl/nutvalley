@@ -14,8 +14,8 @@ export const IMG = {
 
 // Fallback set (used only if /api/categories is unreachable).
 export const CATEGORIES = [
-  { name: 'Necklaces', to: '/category/necklaces', img: PH(700, 700, 'Necklaces') },
-  { name: 'Bracelets', to: '/category/bracelets', img: PH(700, 700, 'Bracelets') },
+  { name: 'Necklaces', to: '/category/necklace', img: PH(700, 700, 'Necklaces') },
+  { name: 'Bracelets', to: '/category/bracelet', img: PH(700, 700, 'Bracelets') },
   { name: 'Earrings', to: '/category/earrings', img: PH(700, 700, 'Earrings') },
   { name: 'Rings', to: '/category/rings', img: PH(700, 700, 'Rings') },
 ];

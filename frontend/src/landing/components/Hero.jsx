@@ -9,7 +9,7 @@ import api from '../../api/client';
 const EASE = [0.22, 1, 0.36, 1];
 
 const DEFAULTS = {
-  hero_eyebrow: 'Beadsboutique — Handcrafted Jewellery',
+  hero_eyebrow: 'Handcrafted Jewellery',
   hero_title: 'Handcrafted beads, made to shine.',
   hero_accent: 'Jewellery made for you.',
   hero_subtitle: 'Necklaces, bracelets, earrings, rings & anklets — delivered across India.',
@@ -39,28 +39,28 @@ export default function Hero({ content }) {
   // While banners are still loading, show a plain backdrop so the hero image never
   // flashes before the banners appear.
   if (slides === null) {
-    return <section aria-hidden="true" className="h-[100svh] min-h-[620px] bg-[#fbf4f2]" />;
+    return <section data-nav="hero" aria-hidden="true" className="h-[510px] bg-[#fbf4f2] sm:h-[100svh] sm:min-h-[560px]" />;
   }
-  if (slides.length > 0) return <HeroCarousel slides={slides} fallbackEyebrow={c.hero_eyebrow} />;
+  if (slides.length > 0) return <HeroCarousel slides={slides} />;
   return <EditorialHero c={c} />;
 }
 
 /* ------------------------------------------------------------------ */
 /* Auto-sliding banner carousel (real-time from /api/banners)          */
 /* ------------------------------------------------------------------ */
-function HeroCarousel({ slides, fallbackEyebrow }) {
+function HeroCarousel({ slides }) {
   const [i, setI] = useState(0);
   const reduce = useReducedMotion();
-  const hover = useRef(false);
   const n = slides.length;
   const go = (idx) => setI(((idx % n) + n) % n);
 
-  // Auto-advance (paused on hover; off for reduced-motion or a single slide).
+  // Always auto-advance (reduced-motion only flattens the 3D effect). Keyed on `i` so a
+  // manual arrow/dot click restarts the countdown instead of jumping again right after.
   useEffect(() => {
-    if (reduce || n < 2) return;
-    const id = setInterval(() => { if (!hover.current) setI((p) => (p + 1) % n); }, 4500);
-    return () => clearInterval(id);
-  }, [n, reduce]);
+    if (n < 2) return;
+    const id = setTimeout(() => setI((p) => (p + 1) % n), 4500);
+    return () => clearTimeout(id);
+  }, [i, n]);
 
   useEffect(() => { if (i >= n) setI(0); }, [n]); // keep index valid if slides change
 
@@ -73,136 +73,148 @@ function HeroCarousel({ slides, fallbackEyebrow }) {
   };
 
   return (
+    // On sm+ the whole hero (card + copy + button + dots) is exactly one screen tall,
+    // so nothing needs a scroll. Top padding clears the fixed 72px header.
     <section
-      onMouseEnter={() => { hover.current = true; }}
-      onMouseLeave={() => { hover.current = false; }}
-      className="relative flex h-[100svh] min-h-[620px] items-center justify-center overflow-hidden bg-[#fbf4f2] pb-14 pt-24 dark:bg-[#fbf4f2] sm:pt-[7.5rem]"
-      style={{ perspective: '1900px' }}
+      data-nav="hero"
+      className="relative flex flex-col items-center overflow-hidden bg-[#fbf4f2] pb-12 pt-28 dark:bg-[#fbf4f2] sm:h-[100svh] sm:min-h-[560px] sm:pb-5 sm:pt-[84px]"
     >
-      {/* ambient glow */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[42rem] w-[42rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-luxe-gold/10 blur-[130px]" />
+      {/* ambient glow (radial gradient — a blurred box shows hard edges in some browsers) */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(196,154,108,0.16),transparent_60%)]" />
 
-      {/* 3D stage — section top padding clears the fixed header */}
-      <div className="relative h-full w-[74vw] max-w-[1180px]" style={{ transformStyle: 'preserve-3d' }}>
-        {slides.map((b, idx) => {
-          const off = offsetOf(idx);
-          const abs = Math.abs(off);
-          const hidden = abs > 1;
-          return (
-            <motion.div
-              key={b.id ?? idx}
-              className="absolute inset-0 overflow-hidden rounded-[26px] shadow-luxe will-change-transform"
-              style={{ transformStyle: 'preserve-3d', zIndex: 20 - abs, pointerEvents: hidden ? 'none' : 'auto' }}
-              initial={false}
-              animate={{
-                x: `${off * 56}%`,
-                z: reduce ? 0 : -abs * 220,
-                rotateY: reduce ? 0 : off * -34,
-                scale: off === 0 ? 1 : 0.84,
-                opacity: hidden ? 0 : off === 0 ? 1 : 0.55,
-              }}
-              transition={{ duration: 0.85, ease: EASE }}
-              onClick={() => off !== 0 && go(idx)}
-              role={off !== 0 ? 'button' : undefined}
-            >
-              <motion.img
-                src={b.image_url || IMG.hero}
-                alt={b.title || ''}
-                className="h-full w-full object-cover object-center"
-                animate={{ scale: !reduce && off === 0 ? 1.07 : 1 }}
-                transition={{ duration: 6, ease: 'linear' }}
-              />
-
-              {/* light blush fade along the bottom only — keeps the image (and any
-                  artwork/logo in it) clear while giving the copy a readable base */}
+      {/* 3D stage. Banners are 16:9 artwork with the logo baked in, so the card keeps
+          that ratio (nothing cropped) and the copy sits BELOW it, never on top.
+          On sm+ the stage takes whatever height the copy leaves (flex-1) and is a size
+          container, so the card is sized to fit BOTH its width and that height. */}
+      <div
+        className="relative flex w-full items-center justify-center sm:min-h-0 sm:flex-1 sm:[container-type:size]"
+        style={{ perspective: '1900px' }}
+      >
+        <div
+          className="relative aspect-[16/9] w-[min(92vw,1320px)] sm:w-[min(80cqw,1320px,calc(100cqh*16/9))]"
+          style={{ transformStyle: 'preserve-3d' }}
+        >
+          {slides.map((b, idx) => {
+            const off = offsetOf(idx);
+            const abs = Math.abs(off);
+            const hidden = abs > 1;
+            return (
               <motion.div
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-luxe-bg/95 via-luxe-bg/60 to-transparent"
-                animate={{ opacity: off === 0 ? 1 : 0 }}
-                transition={{ duration: 0.85 }}
-              />
+                key={b.id ?? idx}
+                className="absolute inset-0 overflow-hidden rounded-[26px] shadow-luxe will-change-transform"
+                style={{ transformStyle: 'preserve-3d', zIndex: 20 - abs, pointerEvents: hidden ? 'none' : 'auto' }}
+                initial={false}
+                animate={{
+                  x: `${off * 56}%`,
+                  z: reduce ? 0 : -abs * 220,
+                  rotateY: reduce ? 0 : off * -34,
+                  scale: off === 0 ? 1 : 0.84,
+                  opacity: hidden ? 0 : off === 0 ? 1 : 0.55,
+                }}
+                transition={{ duration: 0.85, ease: EASE }}
+                onClick={() => off !== 0 && go(idx)}
+                role={off !== 0 ? 'button' : undefined}
+              >
+                <motion.img
+                  src={b.image_url || IMG.hero}
+                  alt={b.title || ''}
+                  className="h-full w-full object-cover object-center"
+                  animate={{ scale: !reduce && off === 0 ? 1.04 : 1 }}
+                  transition={{ duration: 6, ease: 'linear' }}
+                />
+              </motion.div>
+            );
+          })}
 
-              {/* copy on the active card — anchored bottom-left, away from the image's focal area */}
-              <div className="absolute inset-0 flex items-end px-7 pb-8 sm:px-12 sm:pb-12">
-                <SlideCopy b={b} active={off === 0} fallbackEyebrow={fallbackEyebrow} />
-              </div>
-            </motion.div>
-          );
-        })}
+          {/* Dots sit on the card's bottom edge — saves a row below so the image can be bigger */}
+          {n > 1 && (
+            <div
+              className="absolute bottom-3 left-1/2 z-30 flex items-center gap-2 rounded-full bg-black/25 px-3 py-2 backdrop-blur-sm sm:bottom-4"
+              style={{ transform: 'translateX(-50%) translateZ(1px)' }}
+            >
+              {slides.map((_, idx) => (
+                <button
+                  key={idx} onClick={() => go(idx)} aria-label={`Go to slide ${idx + 1}`}
+                  className={`h-2 rounded-full transition-all duration-300 ${idx === i ? 'w-7 bg-white' : 'w-2 bg-white/50 hover:bg-white/80'}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Arrows — vertically centred on the card */}
+        {n > 1 && (
+          <>
+            <button
+              onClick={() => go(i - 1)} aria-label="Previous slide"
+              className="absolute left-2 top-1/2 z-30 -translate-y-1/2 rounded-full border border-luxe-ink/10 bg-white/80 p-2.5 text-luxe-ink shadow-luxe-sm backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold sm:left-6"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => go(i + 1)} aria-label="Next slide"
+              className="absolute right-2 top-1/2 z-30 -translate-y-1/2 rounded-full border border-luxe-ink/10 bg-white/80 p-2.5 text-luxe-ink shadow-luxe-sm backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold sm:right-6"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Arrows + dots */}
-      {n > 1 && (
-        <>
-          <button
-            onClick={() => go(i - 1)} aria-label="Previous slide"
-            className="absolute left-3 top-[calc(50%+2rem)] z-30 -translate-y-1/2 rounded-full border border-white/25 bg-black/25 p-2.5 text-white backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold hover:text-luxe-ink sm:left-6"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            onClick={() => go(i + 1)} aria-label="Next slide"
-            className="absolute right-3 top-[calc(50%+2rem)] z-30 -translate-y-1/2 rounded-full border border-white/25 bg-black/25 p-2.5 text-white backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold hover:text-luxe-ink sm:right-6"
-          >
-            <ChevronRight size={20} />
-          </button>
-
-          <div className="absolute bottom-7 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2">
-            {slides.map((_, idx) => (
-              <button
-                key={idx} onClick={() => go(idx)} aria-label={`Go to slide ${idx + 1}`}
-                className={`h-2 rounded-full transition-all duration-300 ${idx === i ? 'w-7 bg-luxe-gold' : 'w-2 bg-white/50 hover:bg-white'}`}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Copy for the active slide — below the card so it never covers the artwork */}
+      <div className="relative z-10 mt-5 w-full shrink-0 px-6 sm:mt-4">
+        {/* Every slide's copy is stacked in one grid cell and cross-faded, so this block
+            always has the height of the tallest copy — the card above never jumps. */}
+        <div className="grid">
+          {slides.map((b, idx) => (
+            <SlideCopy key={b.id ?? idx} b={b} active={idx === i} />
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
 
-function SlideCopy({ b, active, fallbackEyebrow }) {
+function SlideCopy({ b, active }) {
+  // Fade out fast, fade the next slide's copy in with a light stagger.
   const anim = (delay) => ({
-    initial: { opacity: 0, y: 24 },
-    animate: active ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 },
-    transition: { delay: active ? delay : 0, duration: 0.7, ease: EASE },
+    initial: false,
+    animate: active ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 },
+    transition: active ? { delay, duration: 0.6, ease: EASE } : { duration: 0.25 },
   });
+  const Title = active ? motion.h1 : motion.p; // one <h1> on the page
 
+  // Compact on purpose: stacked + centred on mobile, one row (title/subtitle | button)
+  // on sm+, so the banner above gets as much of the screen as possible.
   return (
-    // No card — the blush fade at the bottom of the slide plus a soft glow keeps the maroon copy readable.
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: active ? 1 : 0 }}
-      transition={{ duration: 0.5, ease: EASE }}
-      className="max-w-xl text-ink [text-shadow:0_0_18px_rgba(255,255,255,0.9),0_0_4px_rgba(255,255,255,0.7)]"
+    <div
+      aria-hidden={!active}
+      inert={active ? undefined : ''} // React 18: keeps hidden slides' buttons out of tab order
+      className={`mx-auto flex max-w-4xl flex-col items-center gap-4 text-center text-ink [grid-area:1/1] sm:flex-row sm:justify-center sm:gap-10 sm:text-left ${active ? '' : 'pointer-events-none'}`}
     >
-      {fallbackEyebrow && (
-        <motion.p {...anim(0.15)} className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-luxe-bronze sm:text-xs">
-          <Sparkles size={14} /> {fallbackEyebrow}
-        </motion.p>
-      )}
-
-      <motion.h1 {...anim(0.28)} className="font-display text-3xl font-bold leading-[1] sm:text-4xl lg:text-5xl">
-        {b.title}
-      </motion.h1>
-
-      {b.subtitle && (
-        <motion.p {...anim(0.4)} className="mt-3 max-w-md text-sm font-medium text-ink/80 sm:text-base">
-          {b.subtitle}
-        </motion.p>
-      )}
+      <div>
+        <Title {...anim(0.08)} className="font-display text-3xl font-bold leading-tight sm:text-4xl">
+          {b.title}
+        </Title>
+        {b.subtitle && (
+          <motion.p {...anim(0.16)} className="mt-1 text-sm text-ink/70 sm:text-base">
+            {b.subtitle}
+          </motion.p>
+        )}
+      </div>
 
       {b.cta_label && b.cta_link && (
-        <motion.div {...anim(0.55)} className="mt-5 flex flex-wrap items-center gap-4">
+        <motion.div {...anim(0.24)} className="shrink-0">
           <MagneticButton
             to={b.cta_link}
-            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-white shadow-luxe [text-shadow:none] transition hover:bg-luxe-gold hover:text-ink"
+            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-white shadow-luxe transition hover:bg-luxe-gold hover:text-ink"
           >
             {b.cta_label}
             <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
           </MagneticButton>
         </motion.div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -228,7 +240,7 @@ function EditorialHero({ c }) {
   };
 
   return (
-    <section ref={ref} onMouseMove={onMove} className="relative h-[100svh] min-h-[620px] overflow-hidden bg-[#fbf4f2] dark:bg-[#fbf4f2]">
+    <section ref={ref} data-nav="hero-dark" onMouseMove={onMove} className="relative h-[100svh] min-h-[620px] overflow-hidden bg-[#fbf4f2] dark:bg-[#fbf4f2]">
       <motion.div style={{ y: imgY, scale: imgScale }} className="absolute inset-0">
         <img src={c.hero_image || IMG.hero} alt="" className="h-full w-full object-cover object-[center_30%]" />
       </motion.div>
@@ -273,7 +285,7 @@ function EditorialHero({ c }) {
               <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
             </MagneticButton>
             <MagneticButton
-              to="/category/necklaces"
+              to="/category/necklace"
               strength={0.25}
               className="rounded-full border border-white/40 px-8 py-4 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10"
             >

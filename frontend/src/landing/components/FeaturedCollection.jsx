@@ -8,8 +8,10 @@ import { inr } from '../../utils/format';
 
 const IMG_BASE = api.defaults.baseURL || '';
 // Heavy base64 images stream via the cached passthrough; URL images stay direct.
+const PLACEHOLDER = 'https://placehold.co/600x800/f6e6e4/3a0d14?text=Beadsboutique';
 const imgSrc = (p) =>
-  p.image && !String(p.image).startsWith('data:') ? p.image : `${IMG_BASE}/api/products/${p.id}/thumb`;
+  !p.image ? PLACEHOLDER
+    : String(p.image).startsWith('data:') ? `${IMG_BASE}/api/products/${p.id}/thumb` : p.image;
 
 export default function FeaturedCollection() {
   const [items, setItems] = useState([]);
@@ -44,18 +46,20 @@ export default function FeaturedCollection() {
   }, [reduce, items]);
 
   if (items.length === 0) return null; // nothing featured yet
+  // A rail only makes sense once it can actually scroll; a few pieces sit centred.
+  const rail = items.length >= 3;
 
   return (
-    <section className="overflow-hidden bg-luxe-ink py-24 text-white sm:py-28">
+    <section data-nav="dark" className="overflow-hidden bg-luxe-ink py-24 text-white sm:py-28">
       <div className="mx-auto max-w-[1400px] px-6 sm:px-10 lg:px-12">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+        <div className={`mb-10 flex flex-wrap items-end gap-4 ${rail ? 'justify-between' : 'justify-center text-center'}`}>
           <div>
             <Reveal><p className="mb-4 text-xs uppercase tracking-[0.4em] text-luxe-gold">Curated capsules</p></Reveal>
             <Reveal delay={0.05}>
               <h2 className="font-display text-4xl font-bold sm:text-5xl">Featured collections</h2>
             </Reveal>
           </div>
-          <Reveal delay={0.1}>
+          {rail && <Reveal delay={0.1}>
             <div className="flex items-center gap-3">
               <p className="mr-2 hidden max-w-xs text-sm text-white/50 sm:block">Auto-sliding — a piece for every mood.</p>
               <button onClick={() => scrollByCards(-1)} aria-label="Previous"
@@ -67,7 +71,7 @@ export default function FeaturedCollection() {
                 <ChevronRight size={18} />
               </button>
             </div>
-          </Reveal>
+          </Reveal>}
         </div>
       </div>
 
@@ -76,14 +80,14 @@ export default function FeaturedCollection() {
         ref={trackRef}
         onMouseEnter={() => { hover.current = true; }}
         onMouseLeave={() => { hover.current = false; }}
-        className="scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-6 pb-4 sm:px-10 lg:px-12"
+        className={`scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-6 pb-4 sm:px-10 lg:px-12 ${rail ? '' : 'justify-center'}`}
       >
         {items.map((p, i) => (
           <Link
             key={p.id}
             data-card
             to={`/product/${p.slug}`}
-            className="group relative w-[78vw] shrink-0 snap-start overflow-hidden rounded-luxe-lg sm:w-[46vw] lg:w-[30vw]"
+            className="group relative w-[78vw] max-w-[440px] shrink-0 snap-start overflow-hidden rounded-luxe-lg sm:w-[46vw] lg:w-[30vw]"
           >
             <div className="aspect-[3/4] overflow-hidden">
               <img src={imgSrc(p)} alt={p.name} loading="lazy"
@@ -107,7 +111,7 @@ export default function FeaturedCollection() {
             </div>
           </Link>
         ))}
-        <div className="w-2 shrink-0" />
+        {rail && <div className="w-2 shrink-0" />}
       </div>
     </section>
   );

@@ -48,10 +48,12 @@ export default function BestSeller() {
         ) : products.length === 0 ? (
           <p className="text-center text-luxe-ink/50">Best sellers are on their way. Check back soon.</p>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          // Flex (not grid) so a short list centres instead of hugging the left column.
+          <div className="flex flex-wrap justify-center gap-5">
             {products.map((p, i) => (
               <motion.div
                 key={p.id}
+                className="w-full sm:w-[calc(50%-0.625rem)] lg:w-[calc(25%-0.9375rem)]"
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
@@ -80,7 +82,7 @@ function LuxeCard({ product, onQuickView }) {
       <div className="relative overflow-hidden rounded-luxe bg-white shadow-luxe-sm dark:bg-ink-soft">
         <Link to={`/product/${product.slug}`} className="block aspect-[3/4] overflow-hidden">
           <img
-            src={product.image || 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500'}
+            src={product.image || 'https://placehold.co/600x800/f6e6e4/3a0d14?text=Beadsboutique'}
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
           />

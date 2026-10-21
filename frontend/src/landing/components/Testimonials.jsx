@@ -23,7 +23,7 @@ export default function Testimonials() {
   const t = TESTIMONIALS[i];
 
   return (
-    <section className="relative overflow-hidden bg-luxe-ink py-24 text-white sm:py-32">
+    <section data-nav="dark" className="relative overflow-hidden bg-luxe-ink py-24 text-white sm:py-32">
       <div className="pointer-events-none absolute right-[10%] top-[15%] h-72 w-72 rounded-full bg-luxe-gold/10 blur-[100px]" />
       <div className="pointer-events-none absolute bottom-[10%] left-[8%] h-72 w-72 rounded-full bg-luxe-bronze/15 blur-[100px]" />
 

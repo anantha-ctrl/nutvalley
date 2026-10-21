@@ -23,12 +23,10 @@ export default function Newsletter() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-luxe-ink py-24 text-white sm:py-32">
+    <section data-nav="dark" className="relative overflow-hidden bg-luxe-ink py-24 text-white sm:py-32">
       {/* gradient lighting */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-luxe-gold/15 blur-[120px]" />
-        <div className="absolute bottom-0 right-10 h-72 w-72 rounded-full bg-luxe-bronze/20 blur-[100px]" />
-      </div>
+      {/* radial gradients rather than blurred boxes, which leave hard edges when clipped */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(196,154,108,0.18),transparent_45%),radial-gradient(circle_at_85%_100%,rgba(160,98,72,0.22),transparent_40%)]" />
 
       <div className="relative mx-auto max-w-3xl px-6 text-center sm:px-10">
         <p className="mb-6 text-xs uppercase tracking-[0.5em] text-luxe-gold">Join the atelier</p>

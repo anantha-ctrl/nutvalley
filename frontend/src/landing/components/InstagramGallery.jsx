@@ -7,8 +7,10 @@ import api from '../../api/client';
 import { inr } from '../../utils/format';
 
 const IMG_BASE = api.defaults.baseURL || '';
+const PLACEHOLDER = 'https://placehold.co/600x800/f6e6e4/3a0d14?text=Beadsboutique';
 const imgSrc = (p) =>
-  p.image && !String(p.image).startsWith('data:') ? p.image : `${IMG_BASE}/api/products/${p.id}/thumb`;
+  !p.image ? PLACEHOLDER
+    : String(p.image).startsWith('data:') ? `${IMG_BASE}/api/products/${p.id}/thumb` : p.image;
 
 export default function InstagramGallery() {
   const [items, setItems] = useState([]);
@@ -42,7 +44,8 @@ export default function InstagramGallery() {
     return () => clearInterval(id);
   }, [reduce, items]);
 
-  if (items.length === 0) return null;
+  // Same feed as Best sellers above — only worth a second look once there's a full rail.
+  if (items.length < 4) return null;
 
   return (
     <section className="bg-luxe-bg py-24 dark:bg-ink sm:py-28">

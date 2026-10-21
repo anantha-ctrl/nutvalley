@@ -56,11 +56,16 @@ flowchart TB
 ### Customer storefront
 - **Sign in / sign up** in an **iPhone (iOS) style**: grouped fields, iOS switch, 50px rounded buttons. Includes email OTP verification, forgot/reset password, and 7-day sliding sessions. There is no Google sign-in.
 - **Landing page** (`/`):
-  - **Hero carousel** built from admin banners. Banner images are shown **without any dark overlay**; the copy sits bottom-left over a soft blush fade on the lower half only, so artwork/logos in the image stay clear. The carousel sits below the fixed header with a small gap. The default hero background image appears **only when no banners exist**.
+  - **Hero carousel** built from admin banners. Banners are 16:9 artwork with the logo baked in, so each card keeps that ratio (nothing is cropped), has **no overlay**, and the copy sits **below** the card, never on top. On tablet/desktop the whole hero (card, copy, button, dots) fits exactly one screen. It **always auto-advances** every 4.5 s; clicking an arrow or dot restarts the countdown. The default hero background image appears **only when no banners exist**.
+  - **Landing header** adapts to what is under it: no bar over the hero, a frosted maroon bar over dark sections (`data-nav="dark"`), frosted white over light sections.
+  - Best sellers / new arrivals: a short list (fewer than 3 items) sits **centred** instead of as a half-empty scrolling rail. Featured collection cards also centre when there are only a few.
   - **Shop by category** rail with arch-framed images that shows "N pieces" or "Coming soon" per category.
   - Featured and trending collections.
   - Brand story with **live stats** (customers, pieces, categories, reviews, average rating) from `/api/landing`.
-- **Shop and category pages:** search, live facet filters (category, brand, price), sort (price / popularity / newest / rating / discount), on-sale filter, pagination.
+- **Shop and category pages** (`pages/Shop.jsx`): search, sort (price / popularity / newest / rating / discount), on-sale filter, "Load more" pagination.
+  - **Sidebar filters:** Price range (placeholders show the live min/max, e.g. `₹390 – ₹4440`), then **Categories** — "All Products" plus every category with its product count. Clicking one opens `/category/<slug>`, highlights it in gold and keeps any search / sale query. The same list is in the mobile Filters drawer.
+  - **Missing product photos:** a product with no uploaded image shows its **category banner** (`public/Banner/*.png`, e.g. Bangles → `Bangles.png`, Jummka → `Jhumka.png`, unknown → `Product1.png`) instead of a blank placeholder. Logic lives in `utils/productImage.js` and is shared by the product cards and the header search suggestions. Uploaded photos always take priority.
+- **Header** (`components/Navbar.jsx`): live search suggestions and the profile menu use a **solid white** panel with a shadow. (They used the glass `.card` style, but a blur nested inside the navbar's own blur doesn't render, so they looked transparent over the products.)
 - **Navigation:** every route change scrolls to the top (`App.jsx`), so a category opened from the footer starts at its products, not the footer.
 - **Product page:**
   - 3:4 image gallery with zoom, plus a Quick View drawer.
@@ -100,7 +105,10 @@ flowchart TB
   The customer is emailed only when the status actually changes (or tracking changes on a shipped order) — re-saving the same status sends nothing. OTP, password-reset, return, UPI and automation emails use the same design.
 - **Image performance:** uploads are stored as originals on Cloudinary (banners were ~2.4 MB PNGs). The API client rewrites every Cloudinary URL in **storefront** responses to `f_auto,q_auto,c_limit,w_1400` (`utils/cdn.js`), serving WebP/AVIF about **10× smaller** (homepage ≈ 38 MB → 2.9 MB). Admin responses are left untouched, so edit forms never save rewritten URLs.
 - **Policy pages** (`pages/static/`): Privacy, Terms, Returns ("Cancellation and Refund Policy") and Shipping ("Shipping & Delivery Policy") hold the store-supplied text. ⚠️ Returns and Shipping still contain `[specified time, e.g., …]` placeholders — replace them with the real time limits.
-- Floating WhatsApp button, mobile bottom tab bar, PWA manifest + service worker.
+- **About page** (`pages/static/About.jsx`, `/about`): image hero ("Jewellery that feels personal"), "Made in small batches" story, six promise cards, a collections grid (8 category banners linking to each category) and a "Start shopping" banner. The copy matches the real range (bangles, harams, temple necklaces, jhumkas…) — no rings/anklets.
+- **Footer** (`components/Footer.jsx`): brand column with logo, tagline, **phone / email / address** (from Admin → Settings) and social icons (only those with a URL); **Shop** links (live categories) in two short columns; Company links; a pill-style newsletter field. Bottom bar: copyright left, "Designed & Developed by CloudHawk" right, with space kept clear of the WhatsApp button.
+- **Floating WhatsApp button** (`components/WhatsAppButton.jsx`): a plain WhatsApp-green circle with the white logo and a soft shadow (no ring, no blinking dot). Hidden until a WhatsApp number is set in admin settings.
+- Mobile bottom tab bar, PWA manifest + service worker.
 - **Fully responsive** on mobile, tablet, laptop and desktop. Verified by a headless audit of every page at 375 / 768 / 1280 / 1536 px, with no horizontal overflow.
 
 ### Admin panel (`/admin`)
@@ -158,9 +166,11 @@ Beadsboutique/
 │   └── scripts/migrate_images_to_cloudinary.php  # One-off: move stored base64 images to Cloudinary
 └── frontend/                          # React + Vite + Tailwind
     ├── public/                        # logo.png, logo.webp, icon-64/192/512.png, manifest, sw.js
+    │   └── Banner/                    # Category / hero / brand images (also the fallback for products without photos)
     ├── src/
     │   ├── api/client.js              # Axios + JWT interceptor, long timeout for image uploads, Cloudinary URL optimiser
-    │   ├── utils/                     # cdn.js (image optimisation), format.js (₹, discount %), invoice.js (print)
+    │   ├── utils/                     # cdn.js (image optimisation), format.js (₹, discount %), invoice.js (print),
+    │   │                              # productImage.js (category-banner fallback for products without photos)
     │   ├── context/                   # Auth, Cart, Wishlist, Theme (light only), Compare, Store
     │   ├── components/                # Navbar, Footer, Logo, Avatar, ProductCard, SizeGuideModal…
     │   ├── landing/                   # Landing page sections (Hero, CategorySection, BrandIntro…)
@@ -238,52 +248,393 @@ This uploads any base64 images still stored in the database (categories, product
 
 ## 🗄️ Database
 
-**Main tables:** `users` (with `avatar_url`), `auth_tokens`, `categories`, `products`, `product_images`, `addresses`, `wishlist`, `cart`, `coupons`, `orders`, `order_items`, `reviews`, `returns`, `banners`, `settings`, `contact_messages`, `loyalty_transactions`, `bills`, `bill_items`, `email_automations`, `stock_notifications`, `notification_states`, `recently_viewed`, `newsletter`.
+**28 tables** in `beadsboutique_db`, grouped by area:
+
+| Area | Tables |
+|---|---|
+| Users & auth | `users`, `auth_tokens`, `addresses`, `loyalty_transactions`, `notification_states` |
+| Catalogue | `categories`, `products`, `product_images`, `product_variants`, `reviews`, `stock_notifications` |
+| Shopping | `cart`, `wishlist`, `recently_viewed`, `coupons` |
+| Orders & delivery | `orders`, `order_items`, `order_status_history`, `returns`, `shipment_events`, `email_automations` |
+| Billing / POS | `bills`, `bill_items` |
+| Site content | `banners`, `settings`, `contact_messages`, `newsletter` |
+
+### ER diagram (all 28 tables)
+
+- **Solid lines** are real foreign keys in the database (30 in total).
+- **Dotted lines** are links kept in application code only, with no FK constraint: `users.referred_by`, `email_automations.order_id`, `orders.coupon_code → coupons.code`.
+- `banners`, `settings`, `contact_messages` and `newsletter` stand alone (no links).
 
 ```mermaid
 erDiagram
+    %% ---------- Users & auth ----------
+    users ||--o{ auth_tokens : "logs in with"
     users ||--o{ addresses : has
-    users ||--o{ orders : places
-    users ||--o{ wishlist : saves
-    users ||--o{ cart : holds
-    users ||--o{ reviews : writes
-    users ||--o{ returns : requests
-    users ||--o{ loyalty_transactions : has
+    users ||--o{ loyalty_transactions : earns
+    users ||--o{ notification_states : "admin_id"
+    users |o..o{ users : "referred_by"
+
+    %% ---------- Catalogue ----------
+    categories |o--o{ categories : "parent_id"
     categories ||--o{ products : groups
     products ||--o{ product_images : has
-    products ||--o{ order_items : "sold as"
+    products ||--o{ product_variants : "has (legacy)"
     products ||--o{ reviews : receives
-    orders ||--o{ order_items : contains
-    orders ||--o{ returns : "may have"
-    addresses ||--o{ orders : "ships to"
-    bills ||--o{ bill_items : contains
+    users ||--o{ reviews : writes
+    products ||--o{ stock_notifications : "back-in-stock"
+
+    %% ---------- Shopping ----------
+    users ||--o{ cart : holds
+    products ||--o{ cart : "in cart"
+    product_variants |o--o{ cart : "variant_id"
+    users ||--o{ wishlist : saves
+    products ||--o{ wishlist : "in wishlist"
+    users ||--o{ recently_viewed : views
+    products ||--o{ recently_viewed : "viewed"
+
+    %% ---------- Orders & delivery ----------
+    users ||--o{ orders : places
+    addresses |o--o{ orders : "ships to"
+    orders ||--|{ order_items : contains
+    products |o--o{ order_items : "sold as"
+    orders ||--o{ order_status_history : "status log"
+    orders ||--o| returns : "may have"
+    users ||--o{ returns : requests
+    orders ||--o{ shipment_events : "tracking events"
+    orders |o--o{ loyalty_transactions : "points for"
+    orders |o..o{ email_automations : "drip emails"
+    coupons |o..o{ orders : "coupon_code"
+
+    %% ---------- Billing / POS ----------
+    users ||--o{ bills : "cashier_id"
+    users |o--o{ bills : "customer user_id"
+    bills ||--|{ bill_items : contains
+    products |o--o{ bill_items : "sold at counter"
 
     users {
         bigint id PK
-        string email
-        string role "customer | admin | cashier"
+        varchar name
+        varchar email UK
+        varchar phone
+        varchar password_hash "bcrypt"
+        enum role "customer, admin, cashier"
+        tinyint is_verified
         mediumtext avatar_url "Cloudinary URL"
+        enum status "active, blocked"
+        int loyalty_points
+        varchar referral_code UK
+        bigint referred_by "users.id (app only)"
+        timestamp created_at
+        timestamp updated_at
+    }
+    auth_tokens {
+        bigint id PK
+        bigint user_id FK
+        varchar token
+        enum type "email_otp, password_reset"
+        datetime expires_at
+        tinyint used
+        timestamp created_at
+    }
+    addresses {
+        bigint id PK
+        bigint user_id FK
+        varchar full_name
+        varchar phone
+        varchar line1
+        varchar line2
+        varchar city
+        varchar state
+        varchar pincode
+        varchar country
+        tinyint is_default
+        timestamp created_at
+    }
+    loyalty_transactions {
+        bigint id PK
+        bigint user_id FK
+        int points
+        enum type "earn, redeem, referral, signup, adjust"
+        bigint order_id FK
+        varchar note
+        timestamp created_at
+    }
+    notification_states {
+        bigint id PK
+        bigint admin_id FK "users.id"
+        varchar notif_key
+        enum status "read, dismissed"
+        timestamp updated_at
+    }
+    categories {
+        bigint id PK
+        varchar name
+        varchar slug UK
+        bigint parent_id FK "categories.id"
+        mediumtext image_url
+        varchar description
+        tinyint is_active
+        timestamp created_at
     }
     products {
         bigint id PK
+        varchar name
+        varchar slug UK
         bigint category_id FK
-        string name
+        varchar brand
+        text description
+        json specifications "unused"
         decimal price
         decimal mrp
         int stock
         int low_stock_alert
+        decimal rating_avg
+        int rating_count
+        int sold_count
+        tinyint is_featured
+        tinyint is_trending
+        tinyint is_active
         tinyint is_returnable
         tinyint is_free_shipping
         decimal shipping_fee
+        timestamp created_at
+        timestamp updated_at
+    }
+    product_images {
+        bigint id PK
+        bigint product_id FK
+        mediumtext image_url "Cloudinary URL"
+        varchar public_id "Cloudinary id"
+        tinyint is_primary
+        int sort_order
+    }
+    product_variants {
+        bigint id PK
+        bigint product_id FK
+        varchar size
+        varchar color
+        varchar color_hex
+        decimal price
+        decimal mrp
+        varchar sku
+        decimal price_diff
+        int stock
+    }
+    reviews {
+        bigint id PK
+        bigint product_id FK
+        bigint user_id FK
+        tinyint rating "1 to 5"
+        varchar title
+        text comment
+        tinyint is_hidden
+        timestamp created_at
+    }
+    stock_notifications {
+        bigint id PK
+        bigint product_id FK
+        varchar email
+        tinyint notified
+        timestamp created_at
+    }
+    cart {
+        bigint id PK
+        bigint user_id FK
+        bigint product_id FK
+        bigint variant_id FK
+        int quantity
+        timestamp created_at
+        timestamp updated_at
+    }
+    wishlist {
+        bigint id PK
+        bigint user_id FK
+        bigint product_id FK
+        timestamp created_at
+    }
+    recently_viewed {
+        bigint id PK
+        bigint user_id FK
+        bigint product_id FK
+        timestamp viewed_at
+    }
+    coupons {
+        bigint id PK
+        varchar code UK
+        enum type "percentage, fixed"
+        decimal value
+        decimal min_order
+        decimal max_discount
+        int usage_limit
+        tinyint first_order_only
+        int used_count
+        datetime expires_at
+        tinyint is_active
+        timestamp created_at
     }
     orders {
         bigint id PK
-        string order_number "BB00001…"
-        string status
-        string payment_method "razorpay | cod | upi"
-        string payment_approval "none | pending | approved | rejected"
+        varchar order_number UK "BB00001"
+        bigint user_id FK
+        bigint address_id FK
+        json shipping_address "snapshot"
+        decimal subtotal
+        decimal discount
+        decimal shipping_fee
+        decimal total
+        int points_used
+        int points_earned
+        varchar coupon_code "coupons.code (app only)"
+        enum payment_method "razorpay, cod, upi"
+        enum payment_status "pending, paid, failed, refunded"
+        varchar razorpay_order_id
+        varchar razorpay_payment_id
+        varchar payment_txn_id
+        mediumtext payment_screenshot
+        enum payment_approval "none, pending, approved, rejected"
+        varchar payment_note
+        datetime payment_reviewed_at
+        enum status "pending, processing, packed, shipped, delivered, cancelled, returned"
+        varchar carrier
+        varchar tracking_number
+        varchar delivery_provider
+        varchar shipment_id
+        varchar shipment_order_id
+        varchar awb_code
+        varchar courier_name
+        varchar shipment_status
+        date shipment_eta
+        varchar label_url
+        varchar tracking_url
+        timestamp shipment_synced_at
+        timestamp placed_at
+        timestamp updated_at
+    }
+    order_items {
+        bigint id PK
+        bigint order_id FK
+        bigint product_id FK
+        bigint variant_id "legacy, no FK"
+        varchar product_name "snapshot"
+        mediumtext image_url "snapshot"
+        varchar size
+        varchar color
+        decimal price
+        int quantity
+        decimal line_total
+    }
+    order_status_history {
+        bigint id PK
+        bigint order_id FK
+        varchar old_status
+        varchar old_carrier
+        varchar old_tracking
+        varchar new_status
+        varchar new_carrier
+        varchar new_tracking
+        tinyint undone
+        timestamp created_at
+    }
+    returns {
+        bigint id PK
+        bigint order_id FK "unique, one per order"
+        bigint user_id FK
+        varchar reason
+        enum status "requested, approved, rejected, refunded"
+        varchar admin_note
+        timestamp created_at
+        timestamp updated_at
+    }
+    shipment_events {
+        bigint id PK
+        bigint order_id FK
+        varchar awb_code
+        varchar status
+        varchar activity
+        varchar location
+        datetime event_at
+        char fingerprint "dedupe"
+        timestamp created_at
+    }
+    email_automations {
+        bigint id PK
+        bigint order_id "orders.id (app only)"
+        bigint user_id
+        varchar email
+        varchar type
+        datetime scheduled_at
+        datetime sent_at
+        varchar status
+        varchar error
+        datetime created_at
+    }
+    bills {
+        bigint id PK
+        varchar bill_number UK
+        bigint cashier_id FK "users.id"
+        bigint user_id FK "users.id, customer"
+        varchar customer_name
+        varchar customer_phone
+        decimal subtotal
+        decimal discount
+        enum discount_type "flat, percent"
+        decimal discount_value
+        decimal tax_pct "GST percent"
+        decimal tax_amount
+        decimal total
+        decimal paid
+        decimal change_due
+        decimal split_cash
+        decimal split_digital
+        enum payment_method "cash, card, upi, split"
+        varchar note
+        enum status "paid, void"
+        timestamp created_at
+        timestamp updated_at
+    }
+    bill_items {
+        bigint id PK
+        bigint bill_id FK
+        bigint product_id FK
+        varchar product_name
+        varchar sku
+        decimal price
+        int quantity
+        decimal line_total
+    }
+    banners {
+        bigint id PK
+        varchar title
+        varchar subtitle
+        varchar cta_label
+        varchar cta_link
+        mediumtext image_url
+        int sort_order
+        tinyint is_active
+        timestamp created_at
+    }
+    settings {
+        varchar key PK
+        mediumtext value
+        timestamp updated_at
+    }
+    contact_messages {
+        bigint id PK
+        varchar name
+        varchar email
+        varchar subject
+        text message
+        tinyint is_read
+        timestamp created_at
+    }
+    newsletter {
+        bigint id PK
+        varchar email UK
+        timestamp created_at
     }
 ```
+
+> `product_variants` and `products.specifications` come from the CloudFashion base schema. The jewellery store doesn't use them (one price, MRP and stock per product), but they are kept so old carts and orders stay valid.
 
 ---
 
@@ -349,6 +700,31 @@ Customers can cancel only before **shipped**; after that only a return (post-del
 - **Images:** `utils/cdn.js` (`cdn()` / `optimizeImages()`) is idempotent and leaves non-Cloudinary, `data:` and already-transformed URLs unchanged.
 
 See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md) for payment-gateway setup and [backend/API.md](backend/API.md) for the full API reference.
+
+---
+
+## ⚠️ Pending before go-live
+
+- **Product photos are missing.** All 127 products were added without images (`product_images` is empty), so every product currently shows its category banner. Upload real photos from **Admin → Products** (edit each product) or with **Bulk CSV upload** using the `images` column (URLs separated by `|`; existing products are updated by name, not duplicated).
+- **Phone number is a placeholder.** `+91 98765 43210` is the code default shown in the footer. Set the real phone and address in **Admin → Settings**.
+- **Policy placeholders.** Returns and Shipping pages still contain `[specified time, e.g., …]` text.
+- **About page claims.** Check the six promise cards (materials, "Delivered across India", "Secure payments") match the business.
+
+---
+
+## 📝 Changelog
+
+### 2026-10-21 — Storefront polish
+- **Branding:** store name / page title changed to "Beadsboutique Jewellery"; hero eyebrow is now "Handcrafted Jewellery".
+- **Landing page:** 16:9 hero cards with copy below, always auto-advancing; one-screen hero on desktop; adaptive landing header (hero / dark / light); centred layouts for short best-seller, new-arrival and featured lists; radial-gradient glows instead of blurred boxes (no hard edges); "necklace" category link fixed.
+- **Collection page:** product cards and search suggestions fall back to the category banner when a product has no photo; price inputs no longer cut off; new **Categories** filter under Price Range with counts and active highlight.
+- **Header:** search suggestions and profile menu are now solid (were see-through over product cards).
+- **WhatsApp button:** simplified to a clean green circle.
+- **Footer:** redesigned — contact details, two-column category links, pill newsletter field, split bottom bar clear of the WhatsApp button.
+- **About page:** rebuilt with hero, story, promise cards, collections grid and CTA; copy corrected to the real product range.
+
+### Earlier
+Everything described in **Features** above: storefront, checkout (Razorpay + COD), orders and emails, admin panel, bulk CSV, Cloudinary images, billing / POS, and the rebrand from the CloudFashion base (`migration_037`).
 
 ---
 

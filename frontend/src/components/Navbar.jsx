@@ -9,6 +9,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { useStore } from '../context/StoreContext';
 import api from '../api/client';
 import { inr } from '../utils/format';
+import { productImage } from '../utils/productImage';
 import Logo from './Logo';
 
 export default function Navbar() {
@@ -55,16 +56,16 @@ export default function Navbar() {
   const SuggestList = (
     showSuggest && suggestions.length > 0 && (
       <div className="absolute left-0 right-0 top-full z-50 mt-2">
-        <div className="card max-h-96 overflow-y-auto p-2">
+        <div className="max-h-96 overflow-y-auto rounded-2xl border border-black/5 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-ink">
           {suggestions.map((p) => (
             <button key={p.id} onMouseDown={() => goToProduct(p.slug)}
               className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-gold/10">
-              <img src={p.image} alt="" className="h-12 w-10 rounded-lg object-cover" />
+              <img src={productImage(p)} alt="" className="h-12 w-10 shrink-0 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-gray-400">{p.brand}</p>
               </div>
-              <span className="text-sm font-semibold">{inr(p.price)}</span>
+              <span className="shrink-0 text-sm font-semibold">{inr(p.price)}</span>
             </button>
           ))}
           <button onMouseDown={submitSearch} className="mt-1 w-full rounded-xl p-2 text-center text-sm font-medium text-gold hover:bg-gold/10">
@@ -129,7 +130,7 @@ export default function Navbar() {
               <div className="group relative hidden lg:block">
                 <button className="flex items-center gap-2 rounded-full p-1.5 hover:bg-gold/10"><Avatar user={user} size={28} /></button>
                 <div className="invisible absolute right-0 top-full w-48 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
-                  <div className="card p-2 text-sm">
+                  <div className="rounded-2xl border border-black/5 bg-white p-2 text-sm shadow-xl dark:border-white/10 dark:bg-ink">
                     <p className="px-3 py-2 font-semibold">{user.name}</p>
                     <Dropdown to="/profile">My Profile</Dropdown>
                     <Dropdown to="/orders">My Orders</Dropdown>

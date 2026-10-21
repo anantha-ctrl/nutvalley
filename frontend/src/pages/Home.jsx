@@ -10,9 +10,9 @@ import RecentlyViewed from '../components/RecentlyViewed';
 import OffersStrip from '../components/OffersStrip';
 
 const SLIDES = [
-  { title: 'Handstrung Necklaces', subtitle: 'Layered & Luminous', cta: 'Shop Necklaces', to: '/category/necklaces',
+  { title: 'Handstrung Necklaces', subtitle: 'Layered & Luminous', cta: 'Shop Necklaces', to: '/category/necklace',
     img: 'https://placehold.co/1600x900/f6e6e4/3a0d14?text=Necklaces' },
-  { title: 'Stack & Shine', subtitle: 'Beaded Bracelets', cta: 'Shop Bracelets', to: '/category/bracelets',
+  { title: 'Stack & Shine', subtitle: 'Beaded Bracelets', cta: 'Shop Bracelets', to: '/category/bracelet',
     img: 'https://placehold.co/1600x900/f6e6e4/3a0d14?text=Bracelets' },
   { title: 'Fresh Beadwork', subtitle: 'New Arrivals', cta: 'Shop New In', to: '/shop?sort=newest',
     img: 'https://placehold.co/1600x900/f6e6e4/3a0d14?text=New+Arrivals' },

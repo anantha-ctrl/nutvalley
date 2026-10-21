@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X } from 'lucide-react';
 import api from '../api/client';
 import ProductCard from '../components/ProductCard';
@@ -22,7 +22,7 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [categoryName, setCategoryName] = useState('');
+  const [categories, setCategories] = useState([]);
   // Filter options (sizes/colors/price) come live from the backend, derived
   // from the actual products in this category/search — not a hardcoded list.
   const [facets, setFacets] = useState({ sizes: [], colors: [], price: { min: 0, max: 0 } });
@@ -34,14 +34,21 @@ export default function Shop() {
   const search = params.get('search') || '';
   const onSale = !!params.get('on_sale'); // "Shop the Sale" entry point
 
-  // Resolve the real category name from its slug (slugs can carry a suffix,
-  // e.g. "jewellery-3c4a", so we must not derive the title from the slug).
+  // Categories drive the sidebar filter and resolve the real category name from
+  // its slug (slugs can carry a suffix, e.g. "jewellery-3c4a").
   useEffect(() => {
-    if (!slug) { setCategoryName(''); return; }
     api.get('/api/categories')
-      .then((r) => setCategoryName(r.data.data.find((c) => c.slug === slug)?.name || ''))
-      .catch(() => setCategoryName(''));
-  }, [slug]);
+      .then((r) => setCategories(r.data.data || []))
+      .catch(() => setCategories([]));
+  }, []);
+  const categoryName = categories.find((c) => c.slug === slug)?.name || '';
+  const totalCount = categories.reduce((n, c) => n + Number(c.product_count || 0), 0);
+
+  // Keep search / sale query params when switching category.
+  const categoryLink = (s) => {
+    const qs = params.toString();
+    return `${s ? `/category/${s}` : '/shop'}${qs ? `?${qs}` : ''}`;
+  };
 
   // Load the available filter facets for the current category/search.
   useEffect(() => {
@@ -91,13 +98,31 @@ export default function Shop() {
     <div className="space-y-7">
       <FilterGroup title="Price Range">
         <div className="flex items-center gap-2">
-          <input type="number" placeholder={facets.price.min ? `Min ₹${facets.price.min}` : 'Min'} value={filters.min}
-            onChange={(e) => setFilters((f) => ({ ...f, min: e.target.value }))} className="input !py-2 text-sm" />
+          <input type="number" placeholder={facets.price.min ? `₹${facets.price.min}` : 'Min'} aria-label="Minimum price" value={filters.min}
+            onChange={(e) => setFilters((f) => ({ ...f, min: e.target.value }))} className="input min-w-0 flex-1 !px-3 !py-2 text-sm" />
           <span>–</span>
-          <input type="number" placeholder={facets.price.max ? `Max ₹${facets.price.max}` : 'Max'} value={filters.max}
-            onChange={(e) => setFilters((f) => ({ ...f, max: e.target.value }))} className="input !py-2 text-sm" />
+          <input type="number" placeholder={facets.price.max ? `₹${facets.price.max}` : 'Max'} aria-label="Maximum price" value={filters.max}
+            onChange={(e) => setFilters((f) => ({ ...f, max: e.target.value }))} className="input min-w-0 flex-1 !px-3 !py-2 text-sm" />
         </div>
       </FilterGroup>
+      {categories.length > 0 && (
+        <FilterGroup title="Categories">
+          <ul className="space-y-1">
+            {[{ slug: '', name: 'All Products', product_count: totalCount }, ...categories].map((c) => {
+              const active = (slug || '') === c.slug;
+              return (
+                <li key={c.slug || 'all'}>
+                  <Link to={categoryLink(c.slug)} onClick={() => setShowFilters(false)}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${active ? 'bg-gold/10 font-semibold text-gold' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                    <span>{c.name}</span>
+                    {c.product_count != null && <span className="text-xs text-gray-400">{c.product_count}</span>}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </FilterGroup>
+      )}
       {facets.sizes.length > 0 && (
         <FilterGroup title="Size">
           <div className="flex flex-wrap gap-2">

@@ -20,6 +20,7 @@ export default function CollectionShowcase({
   return (
     <section
       ref={ref}
+      data-nav={dark ? 'dark' : undefined}
       className={`relative overflow-hidden py-16 sm:py-20 ${dark ? 'bg-luxe-ink text-white' : 'bg-luxe-bg text-luxe-ink dark:bg-ink dark:text-white'}`}
     >
       <div className={`mx-auto grid max-w-[1400px] items-center gap-12 px-6 sm:px-10 lg:grid-cols-2 lg:gap-16 lg:px-12 ${reverse ? 'lg:[direction:rtl]' : ''}`}>

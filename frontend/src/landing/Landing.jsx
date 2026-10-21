@@ -54,7 +54,7 @@ export default function Landing() {
           title={['Layered.', 'Luminous.']}
           description="Handstrung beads, chokers and statement strands — pieces made to layer and to love."
           image={content?.men_image || IMG.men}
-          to="/category/necklaces"
+          to="/category/necklace"
           cta="Explore Necklaces"
         />
 

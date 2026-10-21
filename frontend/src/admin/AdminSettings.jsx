@@ -7,7 +7,7 @@ import { Spinner } from '../components/ui';
 // [key, label, placeholder, type]
 const SECTIONS = [
   ['Brand', Store, [
-    ['store_name', 'Store name', 'Beadsboutique', 'text'],
+    ['store_name', 'Store name', 'Beadsboutique Jewellery', 'text'],
     ['store_logo', 'Store logo', 'Transparent PNG · wide ~240×80 · shown in header, footer & admin', 'image'],
   ]],
   ['Contact (shown on Contact page)', Mail, [
