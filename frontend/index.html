@@ -1,25 +1,63 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beadsboutique Jewellery — Handcrafted Beaded Jewellery</title>
+  <meta name="description"
+    content="Beadsboutique Jewellery — handcrafted bangles, necklaces, harams, jhumkas, earrings, pendants, long chains, tikkas and bracelets. Made with care in India." />
+  <meta name="keywords"
+    content="Beadsboutique, beaded jewellery, handcrafted jewellery, bangles, necklace, harams, jhumka, earrings, pendants, long chain, tikka, bracelet, temple jewellery, antique jewellery" />
+  <meta name="author" content="Beadsboutique Jewellery" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Brand / PWA -->
+  <meta name="theme-color" content="#3a0d14" />
+  <meta name="color-scheme" content="light" />
   <link rel="icon" type="image/png" sizes="64x64" href="/icon-64.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description"
-    content="Beadsboutique Jewellery - Handcrafted beaded jewellery. Shop necklaces, bracelets, earrings, rings & anklets." />
-  <meta name="theme-color" content="#3a0d14" />
-  <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
-  <title>Beadsboutique Jewellery — Handcrafted Beaded Jewellery</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Beadsboutique" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <!-- Default share preview (pages override these via components/Seo.jsx).
+       Social apps need an absolute image URL, so previews show the image only
+       once the site is live on its real domain. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Beadsboutique Jewellery" />
+  <meta property="og:title" content="Beadsboutique Jewellery — Handcrafted Beaded Jewellery" />
+  <meta property="og:description"
+    content="Handcrafted bangles, necklaces, harams, jhumkas and more. Made to be worn, loved and gifted." />
+  <meta property="og:image" content="/Banner/Brand-intro.png" />
+  <meta property="og:locale" content="en_IN" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Beadsboutique Jewellery — Handcrafted Beaded Jewellery" />
+  <meta name="twitter:description"
+    content="Handcrafted bangles, necklaces, harams, jhumkas and more. Made to be worn, loved and gifted." />
+  <meta name="twitter:image" content="/Banner/Brand-intro.png" />
+
+  <!-- Fonts: Inter (body) + Playfair Display (headings), as in tailwind.config.js -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
     rel="stylesheet" />
+
+  <!-- Light-only store: paint the brand background before the app loads (no dark flash). -->
+  <style>
+    html, body { background: #ffffff; color: #3a0d14; }
+  </style>
 </head>
 
 <body>
+  <noscript>
+    <p style="padding:24px;text-align:center;font-family:sans-serif">
+      Please enable JavaScript to shop at Beadsboutique Jewellery.
+    </p>
+  </noscript>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

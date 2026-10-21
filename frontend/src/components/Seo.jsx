@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { useStore } from '../context/StoreContext';
 
-const DEFAULT_DESC = 'Handcrafted beaded jewellery, curated for you. Shop necklaces, bracelets, earrings, rings & anklets.';
+const DEFAULT_DESC = 'Handcrafted beaded jewellery, curated for you. Shop bangles, necklaces, harams, jhumkas, earrings and more.';
 
 /**
  * Per-page SEO: title, description, and Open Graph / Twitter tags.
