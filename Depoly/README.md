@@ -16,9 +16,13 @@ A complete, production-ready **single-vendor e-commerce** web app for **NutValle
 
 **Logo:** `frontend/public/logo.png` (full badge), `logo-mark.png` (header crop), `icon-64/192/512.png` (butterfly), `og-image.png` (share preview).
 
-**Support email** (the only address used for the store, SMTP sender and admin alerts): **nutsvally@gmail.com**
+**Live site:** https://nutvalley.in · **Repo:** https://github.com/anantha-ctrl/nutvalley (public — see [Git & secrets](#-git--secrets))
 
-> Admin alerts go to **Admin → Settings → "Message inbox"** (`store_contact_to`), falling back to the contact email, then the first admin user. Because the sender is the same Gmail account, Gmail may file self-sent alerts under *Sent / All Mail* — set the inbox to a different address to have them land in the Inbox.
+**Emails:**
+- **Store contact / admin alerts:** **nutsvally@gmail.com** (Admin → Settings)
+- **SMTP sender:** **nutvalley2026@gmail.com** (`SMTP_USER` / `MAIL_FROM` in `backend/.env`)
+
+> Admin alerts go to **Admin → Settings → "Message inbox"** (`store_contact_to`), falling back to the contact email, then the first admin user. If you ever set the inbox to the sender address itself, Gmail files the alerts under *Sent / All Mail* instead of the Inbox.
 
 ---
 
@@ -115,7 +119,7 @@ flowchart TB
 - **Fully responsive** on mobile, tablet, laptop and desktop. Verified by a headless audit of every page at 375 / 768 / 1280 / 1536 px, with no horizontal overflow.
 
 ### Admin panel (`/admin`)
-- **Sidebar** in wine and rose gold:
+- **Sidebar** in forest green and gold:
   - Collapse it to an icon rail with the **round ‹ button on its edge**. The choice is remembered in localStorage (`bb_admin_sidebar`).
   - In the icon rail, hover an icon to see its name.
   - On mobile it becomes a slide-in drawer (`inert` while closed, so focus never gets trapped off-screen).
@@ -131,7 +135,7 @@ flowchart TB
     - Upload **3:4 portrait**, ideally **1200 × 1600 px**.
     - Photos are resized in the browser to WebP. Off-ratio photos get a **"NOT 3:4"** badge.
     - Drag to reorder; the first image is the primary.
-    - Images are uploaded to Cloudinary.
+    - Images are uploaded to Cloudinary when you save. Each saved image's Cloudinary URL is listed under the thumbnails with a **Copy** button; a new, unsaved upload says it gets its URL on save.
 - **Bulk CSV upload:**
   - Download the template, fill it, upload it. Rows are **upserted by product name**: existing products are updated, new ones are created, and missing categories are created automatically.
   - Template columns: `name, category, price, mrp, stock, low_stock_alert, brand, description, images, active, featured, trending, returnable, free_shipping, shipping_fee`.
@@ -144,7 +148,7 @@ flowchart TB
 - **Customers** (CSV / Excel / PDF export), **reviews** moderation, **returns**, **loyalty** points, **messages** inbox (Contact Us).
 - **Reports:** date ranges, charts, CSV export.
 - **Mail automation:** a lifecycle email drip driven by order events, with editable offsets and a "Run due now" button.
-- **Settings:** brand logo and name, contact details, admin alert inbox, announcement bar (**leave empty to hide it**), shipping rules, socials / WhatsApp, order prefix (`BB`), COD limit (`0` = no limit). Changes go live on the storefront without a redeploy (open tabs pick them up on refresh). The UPI / QR section has been removed.
+- **Settings:** brand logo and name, contact details, admin alert inbox, announcement bar (**leave empty to hide it**), shipping rules, socials / WhatsApp, order prefix (`VV`), COD limit (`0` = no limit). Changes go live on the storefront without a redeploy (open tabs pick them up on refresh). The UPI / QR section has been removed.
 - **Billing / POS** (`/cashier`): in-store counter with QR / barcode scan, discount, GST, cash / UPI / card / split payment, an 80mm thermal receipt, and void & restock. **Cashiers** get a login that can reach only the billing screen.
 
 ---
@@ -163,7 +167,9 @@ NutValley/
 │   ├── controllers/                   # Auth, Product, Cart, Order, Checkout, Misc… + admin/
 │   ├── storage/                       # Runtime files, web-blocked (razorpay_status.json key-check cache, logs)
 │   └── scripts/migrate_images_to_cloudinary.php  # One-off: move stored base64 images to Cloudinary
+├── Depoly/                            # cPanel deploy bundle: backend/ + dist/ + database/ + .htaccess (see Deployment)
 └── frontend/                          # React + Vite + Tailwind
+    ├── dist/                          # `npm run build` output (committed; copied to Depoly/dist)
     ├── public/                        # logo.png, logo.webp, icon-64/192/512.png, manifest, sw.js
     │   └── Banner/                    # Category / hero / brand images (also the fallback for products without photos)
     ├── src/
@@ -221,16 +227,24 @@ Create accounts through the app, then promote an admin account by setting `role 
 
 ## 🔑 Configuration (`backend/.env`)
 
+One `.env` holds both environments. The loader picks a block by host:
+
+```ini
+[development]   # used on localhost — APP_URL=http://localhost/NutsVally/backend, DB nutsvally_db
+[production]    # used on the live host — APP_URL=https://nutvalley.in/backend, FRONTEND_URL=https://nutvalley.in/, cPanel DB
+[shared]        # everything below applies to both (JWT, SMTP, Cloudinary, Razorpay, cron…)
+```
+
 | Variable | Purpose |
 |---|---|
 | `APP_ENV`, `APP_URL`, `FRONTEND_URL` | Environment and URLs. `FRONTEND_URL` must be the storefront's real address (`http://localhost:5190` in dev, your domain in production): it is used for email buttons, password-reset links and the share-page redirect. |
 | `DB_HOST/PORT/NAME/USER/PASS` | MySQL connection (`DB_NAME=nutsvally_db`) |
 | `JWT_SECRET`, `JWT_TTL` | Token signing. **Use a long random secret.** |
 | `MAIL_DRIVER` | `smtp` sends real email; `log` writes to `backend/storage/mail.log` |
-| `SMTP_HOST/PORT/USER/PASS` | Gmail: `smtp.gmail.com:587`, user `nutsvally@gmail.com`, and a 16-character **App Password** (spaces are stripped automatically) |
-| `MAIL_FROM`, `MAIL_FROM_NAME` | Sender: `nutsvally@gmail.com` / `NutValley` |
-| `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` | **Every** image upload (products, categories, banners, avatars, logo) is sent to Cloudinary using signed uploads. If the keys are missing, images are stored inline. |
-| `RAZORPAY_KEY_ID/KEY_SECRET` | Online payments (`rzp_test_…` for sandbox, `rzp_live_…` for real money). Copy **both** from the same "Regenerate key" popup — a mismatched pair returns 401 *Authentication failed*. Empty keys = demo test mode (decided by the server only). Wrong keys never create fake paid orders: checkout refuses and hides online payment. See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md). |
+| `SMTP_HOST/PORT/USER/PASS` | Gmail: `smtp.gmail.com:587`, user `nutvalley2026@gmail.com`, and a 16-character **App Password** (Google Account → Security → 2-Step Verification → App passwords; spaces are stripped automatically). Not the normal Gmail password. |
+| `MAIL_FROM`, `MAIL_FROM_NAME` | Sender: `nutvalley2026@gmail.com` / `NutValley` |
+| `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` | **Every** image upload (products, categories, banners, avatars, logo) is sent to Cloudinary using signed uploads (cloud `exo3ooxt`, folders `nutsvally/*`). If the keys are missing **or an upload fails**, the image is stored inline as base64 and the admin URL field stays empty — run the migration script below once the cause is fixed. The free plan rejects files over **10 MB**. |
+| `RAZORPAY_KEY_ID/KEY_SECRET` | Online payments (`rzp_test_…` for sandbox, `rzp_live_…` for real money). Copy **both** from the same "Regenerate key" popup — a mismatched pair returns 401 *Authentication failed*. Empty keys = demo test mode (decided by the server only). Wrong keys never create fake paid orders: checkout refuses and hides online payment. |
 | `CRON_KEY` | Secret for `GET /api/cron/run?key=…`, which runs the mail-automation drip from Task Scheduler / cron |
 | `DELIVERY_*` | Optional courier API (the admin Delivery page has been removed; orders use manual carrier + tracking) |
 
@@ -240,7 +254,35 @@ Create accounts through the app, then promote an admin account by setting `role 
 ```bash
 php backend/scripts/migrate_images_to_cloudinary.php
 ```
-This uploads any base64 images still stored in the database (categories, products, banners, settings) to Cloudinary and saves the returned URLs. It is safe to run more than once, and it runs from the command line only.
+This uploads any base64 images still stored in the database (categories, products, banners, settings, avatars, payment screenshots) to Cloudinary and saves the returned URLs. It is safe to run more than once (rows that already hold a URL are skipped, failed uploads are left untouched), and it runs from the command line only. On XAMPP: `d:\xampp\php\php.exe backend\scripts\migrate_images_to_cloudinary.php`.
+
+---
+
+## 📦 Deployment (cPanel → nutvalley.in)
+
+1. **Build the frontend**
+   ```bash
+   cd frontend
+   npm run build            # uses .env.production (VITE_API_URL empty = same domain as the site)
+   ```
+2. **Refresh `Depoly/`** so it matches the sources: copy `backend/` (including `backend/.env`), `database/`, `.htaccess` and `frontend/dist/` → `Depoly/dist/`.
+3. **Check `backend/.env` → `[production]`:** `APP_URL=https://nutvalley.in/backend`, `FRONTEND_URL=https://nutvalley.in/`, and the cPanel `DB_NAME` / `DB_USER` / `DB_PASS`.
+4. **Zip it with the Windows `tar`**, not Git Bash's:
+   ```bash
+   /c/Windows/System32/tar.exe -a -c -f Depoly.zip -C Depoly .htaccess .gitignore README.md backend database dist
+   ```
+   > Git Bash's `/usr/bin/tar` can't write zip — it silently writes a **tar** file named `.zip`, and cPanel then fails with *"End-of-central-directory signature not found"*. A real zip starts with the bytes `PK`. PowerShell's `Compress-Archive` (5.1) writes `\` in paths, which breaks folders on Linux.
+5. **cPanel → File Manager → `nutvalley.in/`:** delete the old `Depoly.zip`, upload the new one (wait for 100 %), then **Extract**.
+
+---
+
+## 🔐 Git & secrets
+
+The GitHub repo **is public**. `.gitignore` blocks every `.env` in every folder (`.env.example` and `.env.production` are allowed — they hold no secrets) and `*.zip` (the deploy zip contains `backend/.env`). `Depoly/` and `frontend/dist/` **are** committed; `node_modules/` is not.
+
+After cloning: copy `backend/.env.example` → `backend/.env`, fill in the keys, then `cd frontend && npm install`.
+
+> If a real `.env`, App Password or API secret ever reaches the repo, revoke it (Google App passwords, Cloudinary → Regenerate secret, change the DB password and `JWT_SECRET`) — deleting the file afterwards is not enough.
 
 ---
 
@@ -697,13 +739,13 @@ Customers can cancel only before **shipped**; after that only a return (post-del
 - **Payments:** the Razorpay signature is verified against the Razorpay order id **stored for that order**, so a payment for another (cheaper) order can't be replayed.
 - **Images:** `utils/cdn.js` (`cdn()` / `optimizeImages()`) is idempotent and leaves non-Cloudinary, `data:` and already-transformed URLs unchanged.
 
-See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md) for payment-gateway setup and [backend/API.md](backend/API.md) for the full API reference.
+See [backend/API.md](backend/API.md) for the full API reference.
 
 ---
 
 ## ⚠️ Pending before go-live
 
-- **Product photos are missing.** All 127 products were added without images (`product_images` is empty), so every product currently shows its category banner. Upload real photos from **Admin → Products** (edit each product) or with **Bulk CSV upload** using the `images` column (URLs separated by `|`; existing products are updated by name, not duplicated).
+- **Large images.** The PNGs in `frontend/public/` (Banner, Categories, Products, `og-image.png`) are 2–3 MB each, which is why `dist/` is ~79 MB. Converting them to WebP would cut the bundle and page weight a lot.
 - **Phone number is a placeholder.** `+91 98765 43210` is the code default shown in the footer. Set the real phone and address in **Admin → Settings**.
 - **Policy placeholders.** Returns and Shipping pages still contain `[specified time, e.g., …]` text.
 - **About page claims.** Check the six promise cards (materials, "Delivered across India", "Secure payments") match the business.
@@ -711,6 +753,13 @@ See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md) for payment-gateway setup and [backen
 ---
 
 ## 📝 Changelog
+
+### 2026-11-03 — Images, deployment, repo
+- **Cloudinary:** 23 images that had been saved inline as base64 (8 categories, 4 banners, 6 product photos, 4 settings images incl. the logo, 1 avatar) were moved to Cloudinary with `migrate_images_to_cloudinary.php`, so their URLs now show in the admin. Every product now has a photo.
+- **Admin → Products:** the image section lists each saved image's Cloudinary URL with a Copy button.
+- **SMTP / Cloudinary keys** checked end to end (Gmail login + test mail; Cloudinary ping + upload/delete).
+- **Deployment:** production `.env` block set for **nutvalley.in**; deploy zip must be made with Windows `tar` (see Deployment).
+- **Repo:** moved to `anantha-ctrl/nutvalley`; `Depoly/` and `frontend/dist/` committed, all `.env` files ignored.
 
 ### 2026-10-21 — Storefront polish
 - **Branding:** store name / page title changed to "NutValley"; hero eyebrow is now "Premium Nuts & Dry Fruits".
