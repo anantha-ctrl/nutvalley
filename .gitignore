@@ -2,12 +2,10 @@
 node_modules/
 vendor/
 
-# Build output
-frontend/dist/
-
-# Env & secrets
-backend/.env
-frontend/.env
+# Env & secrets (repo is public — never commit these)
+.env
+!.env.example
+!.env.production
 *.local
 
 # Backend storage (logs, uploaded temp)
@@ -23,6 +21,5 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Deploy bundle (contains backend/.env secrets)
-Depoly/
+# Deploy zip (contains backend/.env secrets)
 *.zip

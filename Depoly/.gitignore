@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+frontend/dist/
+
+# Env & secrets
+backend/.env
+frontend/.env
+*.local
+
+# Backend storage (logs, uploaded temp)
+backend/storage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
