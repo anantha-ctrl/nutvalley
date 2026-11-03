@@ -134,10 +134,10 @@ export default function AdminLayout() {
       <div className={`flex items-center ${mini ? 'justify-center px-2 py-5' : 'justify-between px-5 py-5'}`}>
         <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3">
           {mini ? (
-            <img src="/icon-64.png" alt="Beadsboutique" className="h-10 w-10 rounded-xl bg-white object-contain p-0.5 shadow-glow" />
+            <img src="/icon-64.png" alt="NutValley" className="h-10 w-10 rounded-xl bg-white object-contain p-0.5 shadow-glow" />
           ) : (
             <>
-              <Logo white className="h-11" />
+              <Logo white className="h-14" />
               <span className="leading-tight">
                 <span className="block text-[10px] font-semibold uppercase tracking-[0.25em] text-gold-light/80">Admin</span>
                 <span className="block text-xs text-white/50">Control panel</span>
@@ -166,7 +166,7 @@ export default function AdminLayout() {
                   className={({ isActive }) =>
                     `group/nav relative flex items-center rounded-xl text-[13.5px] font-medium transition-all duration-200 ${
                       isActive
-                        ? 'bg-gradient-to-r from-gold to-gold-dark text-white shadow-[0_6px_18px_-6px_rgba(184,116,90,0.7)]'
+                        ? 'bg-gradient-to-r from-gold to-gold-dark text-white shadow-[0_6px_18px_-6px_rgba(201,151,28,0.7)]'
                         : 'text-white/60 hover:bg-white/[0.06] hover:text-white'
                     } ${mini ? 'mx-auto h-11 w-11 justify-center' : 'gap-3 px-3 py-2.5'}`
                   }
@@ -236,7 +236,7 @@ export default function AdminLayout() {
 
           {/* Mobile logo */}
           <Link to="/admin" className="lg:hidden">
-            <Logo className="h-9" />
+            <Logo className="h-12" />
           </Link>
 
           {/* Desktop: breadcrumb (the sidebar is toggled from the round button on its edge) */}

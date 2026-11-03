@@ -9,7 +9,7 @@ class AdminAutomationController
     private const STEPS = [
         ['type' => 'order_confirmation', 'label' => 'Order confirmation', 'trigger' => 'When the order is placed', 'fixed' => true],
         ['type' => 'welcome',            'label' => 'Welcome email',      'trigger' => 'On delivery'],
-        ['type' => 'feeding_guide',      'label' => 'Jewellery care guide',      'trigger' => 'On delivery (day the product arrives)'],
+        ['type' => 'feeding_guide',      'label' => 'Storage & freshness guide',      'trigger' => 'On delivery (day the product arrives)'],
         ['type' => 'check_in',           'label' => 'Check-in mail',      'trigger' => 'After delivery'],
         ['type' => 'review_request',     'label' => 'Review request (+ referral)', 'trigger' => 'After delivery'],
         ['type' => 'reorder_reminder',   'label' => 'Reorder reminder',   'trigger' => 'After delivery'],

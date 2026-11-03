@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import LandingFooter from './landing/components/LandingFooter';
 import MobileTabBar from './components/MobileTabBar';
 import WhatsAppButton from './components/WhatsAppButton';
 import CompareBar from './components/CompareBar';
@@ -158,7 +158,8 @@ export default function App() {
         </Routes>
         </Suspense>
       </main>
-      {!bare && <Footer />}
+      {/* Same footer as the landing page; bottom padding keeps it clear of the mobile tab bar */}
+      {!bare && <div className="mt-16 bg-luxe-ink pb-16 md:pb-0"><LandingFooter /></div>}
       {!bare && <MobileTabBar />}
       {!bare && <WhatsAppButton />}
       {!bare && <CompareBar />}

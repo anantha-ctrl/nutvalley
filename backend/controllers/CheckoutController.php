@@ -31,6 +31,8 @@ class CheckoutController
     public function createOrder(array $p): void
     {
         $userId = Auth::id();
+        // The store accepts UPI only (POST /api/orders/upi) — Razorpay is switched off.
+        Response::error('Card / Netbanking payment is not available. Please pay via UPI.', 422);
         $d = OrderController::buildOrderData($userId, Request::body());
 
         // Razorpay is available for any amount (it's the only option above the COD threshold).

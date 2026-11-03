@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Check, Tag, QrCode, Banknote, Upload, Copy, Loader2, ShieldCheck, CreditCard, ArrowLeft } from 'lucide-react';
+import { Plus, Check, Tag, QrCode, Upload, Copy, Loader2, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
 import api from '../api/client';
@@ -21,7 +21,7 @@ export default function Checkout() {
   const [coupon, setCoupon] = useState('');
   const [discount, setDiscount] = useState(0);
   const [appliedCode, setAppliedCode] = useState('');
-  const [method, setMethod] = useState('cod');
+  const [upiOpen, setUpiOpen] = useState(false); // UPI chosen as the payment method
   const [placing, setPlacing] = useState(false);
   const [offers, setOffers] = useState([]);
   const [shipInfo, setShipInfo] = useState(null);
@@ -115,28 +115,19 @@ export default function Checkout() {
   const shipping = Number(quote?.shipping_fee ?? cart.summary?.shipping_fee ?? 0);
   const total = Number(quote?.total ?? Math.max(0, subtotal - discount + shipping));
 
-  // Payment rule (live from the DB): COD up to cod_max (0 = no limit); Razorpay always.
-  const codMax = Number(quote?.cod_max ?? 0);
-  const codAllowed = quote ? !!quote.cod_allowed : true;
-  const onlineAvailable = quote ? quote.online_available !== false : true;
-  useEffect(() => {
-    // Steer to whichever method is actually usable right now.
-    if (!codAllowed && method === 'cod' && onlineAvailable) setMethod('razorpay');
-    if (!onlineAvailable && method === 'razorpay' && codAllowed) setMethod('cod');
-  }, [codAllowed, onlineAvailable]);
-
-  // Build the UPI intent + generate a QR that encodes the exact payable amount.
+  // Payment is UPI only (no COD / Razorpay). Build the UPI intent + generate a QR that encodes the exact payable amount.
   const upiEnabled = !!payInfo?.upi_enabled;
   const upiLink = upiEnabled
-    ? `upi://pay?pa=${encodeURIComponent(payInfo.upi_id)}&pn=${encodeURIComponent(payInfo.payee_name || 'Beadsboutique')}&am=${total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Beadsboutique Order')}`
+    ? `upi://pay?pa=${encodeURIComponent(payInfo.upi_id)}&pn=${encodeURIComponent(payInfo.payee_name || 'NutValley')}&am=${total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('NutValley Order')}`
     : '';
   useEffect(() => {
-    if (method !== 'upi' || !upiEnabled) { setQrUrl(''); return; }
-    // Prefer the admin's custom QR image; else generate one from the UPI link.
-    if (payInfo.qr_image) { setQrUrl(payInfo.qr_image); return; }
-    QRCode.toDataURL(upiLink, { width: 260, margin: 1, color: { dark: '#3a0d14', light: '#ffffff' } })
-      .then(setQrUrl).catch(() => setQrUrl(''));
-  }, [method, upiEnabled, upiLink, payInfo?.qr_image]);
+    if (!upiEnabled) { setQrUrl(''); return; }
+    // Always generate the QR from the UPI link so the scanned payment has the exact order
+    // total pre-filled. (An uploaded static QR image can't carry the amount, so it's only
+    // a fallback if generation fails.)
+    QRCode.toDataURL(upiLink, { width: 320, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#ffffff' } })
+      .then(setQrUrl).catch(() => setQrUrl(payInfo.qr_image || ''));
+  }, [upiEnabled, upiLink, payInfo?.qr_image]);
 
   const selectedAddr = addresses.find((a) => a.id === selected);
   const custName = selectedAddr?.full_name || user?.name || '';
@@ -157,83 +148,20 @@ export default function Checkout() {
     e.target.value = '';
   };
 
-  // Lazy-load Razorpay's checkout script only when needed.
-  const loadRazorpay = () => new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-
-  // Razorpay gateway: create a pending order on the server, open the hosted
-  // checkout, then verify the signature server-side to finalize the order.
-  const payWithRazorpay = async (payload) => {
-    const { data } = await api.post('/api/checkout/create-order', payload);
-    const d = data.data;
-    // No API keys on the server -> test mode (decided server-side): finalize without the gateway.
-    if (d.is_test || !d.razorpay_key) {
-      await api.post('/api/checkout/verify', { order_id: d.order_id });
-      toast.success('Order placed (test mode — add Razorpay keys for live payments)');
-      refresh();
-      return navigate(`/order-success/${d.order_id}`);
-    }
-    const ok = await loadRazorpay();
-    if (!ok) return toast.error('Could not load Razorpay. Check your connection.');
-    const rzp = new window.Razorpay({
-      key: d.razorpay_key,
-      amount: d.amount,
-      currency: d.currency,
-      name: 'Beadsboutique',
-      description: `Order ${d.order_number}`,
-      order_id: d.razorpay_order_id,
-      prefill: { name: custName, contact: custPhone },
-      theme: { color: '#b8745a' },
-      handler: async (resp) => {
-        try {
-          await api.post('/api/checkout/verify', {
-            order_id: d.order_id,
-            razorpay_order_id: resp.razorpay_order_id,
-            razorpay_payment_id: resp.razorpay_payment_id,
-            razorpay_signature: resp.razorpay_signature,
-          });
-          toast.success('Payment successful!');
-          refresh();
-          navigate(`/order-success/${d.order_id}`);
-        } catch (err) { toast.error(err.message || 'Verification failed'); }
-      },
-      modal: { ondismiss: () => toast('Payment cancelled') },
-    });
-    rzp.open();
-  };
-
+  // UPI / QR manual payment — customer pays to the store's UPI id, then submits the
+  // transaction id + screenshot; the order waits for admin verification.
   const placeOrder = async () => {
     if (!selected) return toast.error('Please select a delivery address');
+    if (!upiEnabled) return toast.error('UPI payment is not available right now. Please contact the store.');
+    if (!txnId.trim()) return toast.error('Please enter the UPI transaction / reference id');
+    if (!screenshot) return toast.error('Please upload your payment screenshot');
     setPlacing(true);
     try {
-      const payload = {
+      const { data } = await api.post('/api/orders/upi', {
         address_id: selected,
         coupon_code: appliedCode || undefined,
-      };
-
-      if (method === 'razorpay') { await payWithRazorpay(payload); return; }
-
-      if (method === 'cod') {
-        const { data } = await api.post('/api/orders/cod', payload);
-        toast.success('Order placed!');
-        refresh();
-        return navigate(`/order-success/${data.data.order_id}`);
-      }
-
-      // UPI / QR manual payment — customer submits transaction id + screenshot,
-      // order waits for admin verification.
-      if (!upiEnabled) return toast.error('Online payment is not available right now. Please choose Cash on Delivery.');
-      if (!txnId.trim()) return toast.error('Please enter the UPI transaction / reference id');
-      if (!screenshot) return toast.error('Please upload your payment screenshot');
-
-      const { data } = await api.post('/api/orders/upi', {
-        ...payload, txn_id: txnId.trim(), screenshot,
+        txn_id: txnId.trim(),
+        screenshot,
       });
       toast.success('Payment submitted — awaiting verification');
       refresh();
@@ -243,7 +171,7 @@ export default function Checkout() {
     } finally { setPlacing(false); }
   };
 
-  const upiReady = method !== 'upi' || (upiEnabled && txnId.trim() && screenshot);
+  const upiReady = upiOpen && upiEnabled && txnId.trim() && screenshot;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
@@ -302,52 +230,31 @@ export default function Checkout() {
             )}
           </section>
 
-          {/* Payment method — gated by order total (live rule from the DB) */}
+          {/* Payment method — UPI only; its pay panel opens once the customer picks it */}
           <section className="card p-6">
             <h2 className="mb-1 text-lg font-semibold">Payment Method</h2>
-            <p className="mb-4 text-xs text-gray-400">
-              {!onlineAvailable
-                ? 'Online payment is temporarily unavailable — please use Cash on Delivery.'
-                : !codAllowed
-                ?`Cash on Delivery is available only for orders up to ${inr(codMax)} — please pay online.`
-                : codMax > 0
-                  ? `Cash on Delivery or pay online. (COD available up to ${inr(codMax)}.)`
-                  : 'Cash on Delivery or pay online.'}
-            </p>
+            <p className="mb-4 text-xs text-gray-400">Choose how you'd like to pay.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <PayOption active={method === 'razorpay'} onClick={() => setMethod('razorpay')} icon={CreditCard} disabled={!onlineAvailable}
-                title="Card / UPI / Netbanking" subtitle={onlineAvailable ? 'Secure payment via Razorpay' : 'Temporarily unavailable'} />
-              <PayOption active={method === 'cod'} onClick={() => setMethod('cod')} icon={Banknote} disabled={!codAllowed}
-                title="Cash on Delivery" subtitle={codAllowed ? 'Pay when you receive' : `Only up to ${inr(codMax)}`} />
+              <button type="button" onClick={() => setUpiOpen(true)}
+                className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${upiOpen ? 'border-gold bg-gold/5' : 'border-black/10 hover:border-gold/50 dark:border-white/10'}`}>
+                <QrCode size={22} className={upiOpen ? 'text-gold' : 'text-gray-400'} />
+                <div className="flex-1">
+                  <p className="font-semibold">UPI</p>
+                  <p className="text-xs text-gray-400">GPay, PhonePe, Paytm, BHIM &amp; more</p>
+                </div>
+                {upiOpen && <Check size={18} className="text-gold" />}
+              </button>
             </div>
 
-            {method === 'cod' && codAllowed && (
-              <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/[0.03] p-5">
-                <p className="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-300">
-                  <Banknote size={16} className="mt-0.5 shrink-0 text-gold" />
-                  Pay {inr(total)} in cash (or UPI) to the delivery partner when your order arrives.
-                </p>
-              </div>
-            )}
-
-            {/* Razorpay panel */}
-            {method === 'razorpay' && onlineAvailable && (
-              <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/[0.03] p-5">
-                <p className="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-300">
-                  <ShieldCheck size={16} className="mt-0.5 shrink-0 text-gold" />
-                  You'll pay securely via Razorpay — Cards, UPI, Netbanking &amp; Wallets. Your order is confirmed instantly on successful payment.
-                </p>
-              </div>
-            )}
-
             {/* UPI / QR payment panel */}
-            {method === 'upi' && (
+            {upiOpen && (
               <div className="mt-5 rounded-2xl border border-gold/30 bg-gold/[0.03] p-5">
+                <p className="mb-4 flex items-center gap-2 font-semibold"><QrCode size={18} className="text-gold" /> Pay via UPI</p>
                 {!payInfo ? (
                   <p className="flex items-center gap-2 text-sm text-gray-400"><Loader2 size={16} className="animate-spin" /> Loading payment details…</p>
                 ) : !upiEnabled ? (
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Online payment isn’t configured yet. Please choose <b>Cash on Delivery</b>, or ask the store to add a UPI ID in Admin → Settings.
+                    UPI payment isn’t set up yet. Please contact the store to place your order.
                   </p>
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2">
@@ -361,6 +268,11 @@ export default function Checkout() {
                           : <div className="flex h-44 w-44 items-center justify-center text-gray-400"><Loader2 className="animate-spin" /></div>}
                       </div>
                       <p className="mt-3 font-display text-2xl font-bold text-gold">{inr(total)}</p>
+                      <p className="text-xs text-gray-400">This amount is pre-filled when you scan the QR</p>
+                      {/* On phones, open the UPI app directly with the amount pre-filled */}
+                      <a href={upiLink} className="btn-outline mt-3 inline-flex !px-4 !py-2 text-sm md:hidden">
+                        Pay {inr(total)} with UPI app
+                      </a>
 
                       <div className="mt-4 space-y-2 text-left text-sm">
                         <DetailRow label="UPI ID" value={payInfo.upi_id} onCopy={() => copy(payInfo.upi_id, 'UPI ID')} />
@@ -400,7 +312,7 @@ export default function Checkout() {
                               <button onClick={() => setScreenshot('')} className="text-xs text-rose-500 hover:underline">Remove</button>
                             </div>
                           ) : (
-                            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-gold/50 px-4 py-6 text-sm text-gold hover:bg-gold/10">
+                            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-gold/50 px-4 py-6 text-sm text-gold hover:bg-luxe-cream">
                               <Upload size={16} /> Upload screenshot
                               <input type="file" accept="image/*" className="hidden" onChange={pickScreenshot} />
                             </label>
@@ -450,7 +362,7 @@ export default function Checkout() {
                   const active = appliedCode === o.code;
                   return (
                     <button key={o.code} onClick={() => applyCoupon(o.code)} title={`${offerLabel(o)}${Number(o.min_order) > 0 ? ` · min ${inr(o.min_order)}` : ''}`}
-                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${active ? 'border-gold bg-gold/15 text-gold' : 'border-dashed border-gold/40 text-gold hover:bg-gold/10'}`}>
+                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${active ? 'border-gold bg-gold/15 text-gold' : 'border-dashed border-gold/40 text-gold hover:bg-luxe-cream'}`}>
                       <Tag size={11} /> {o.code}
                       <span className="font-normal text-gray-400">· {offerLabel(o)}</span>
                     </button>
@@ -467,13 +379,12 @@ export default function Checkout() {
           <Row label="Total" value={inr(total)} bold />
 
           <button onClick={placeOrder} disabled={placing || !upiReady} className="btn-gold mt-6 w-full disabled:opacity-60">
-            {placing ? 'Processing…'
-              : method === 'cod' ? 'Place Order'
-              : method === 'razorpay' ? `Pay ${inr(total)}`
-              : `I've Paid ${inr(total)} — Place Order`}
+            {placing ? 'Processing…' : `I've Paid ${inr(total)} — Place Order`}
           </button>
-          {method === 'upi' && upiEnabled && !upiReady && (
-            <p className="mt-2 text-center text-xs text-gray-400">Enter the transaction id &amp; upload the screenshot to continue</p>
+          {upiEnabled && !upiReady && (
+            <p className="mt-2 text-center text-xs text-gray-400">
+              {upiOpen ? 'Enter the transaction id & upload the screenshot to continue' : 'Select UPI as your payment method to continue'}
+            </p>
           )}
         </div>
       </div>
@@ -504,10 +415,3 @@ const ReadonlyField = ({ label, value }) => (
   </div>
 );
 
-const PayOption = ({ active, onClick, icon: Icon, title, subtitle, disabled }) => (
-  <button type="button" onClick={onClick} disabled={disabled}
-    className={`flex items-start gap-3 rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${active ? 'border-gold bg-gold/5' : 'border-black/10 hover:border-gold/50 dark:border-white/10'}`}>
-    <Icon size={22} className={active ? 'text-gold' : 'text-gray-400'} />
-    <div><p className="font-semibold">{title}</p><p className="text-xs text-gray-400">{subtitle}</p></div>
-  </button>
-);

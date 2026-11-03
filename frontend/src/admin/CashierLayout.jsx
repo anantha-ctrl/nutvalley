@@ -20,7 +20,7 @@ export default function CashierLayout() {
   return (
     <div className="min-h-screen bg-gray-50 text-ink dark:bg-ink dark:text-gray-100">
       <header className="glass sticky top-0 z-30 flex items-center gap-3 border-b border-black/5 px-4 py-3 dark:border-white/10 lg:px-8">
-        <Logo className="h-9" />
+        <Logo className="h-12" />
         <span className="hidden items-center gap-2 font-display text-lg font-semibold sm:flex">
           <Receipt size={18} className="text-gold" /> Billing Counter
         </span>

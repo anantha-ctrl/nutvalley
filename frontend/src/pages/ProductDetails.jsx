@@ -185,9 +185,9 @@ export default function ProductDetails() {
           {product.sizes?.length > 0 && (
             <div className="mt-6">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-wider">Size</p>
+                <p className="text-sm font-semibold uppercase tracking-wider">Pack Size</p>
                 <button onClick={() => setSizeGuide(true)} className="flex items-center gap-1 text-xs text-gold hover:underline">
-                  <Ruler size={13} /> Size Guide
+                  <Ruler size={13} /> Pack Guide
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">

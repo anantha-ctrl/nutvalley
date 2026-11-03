@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Heart, ShoppingBag, User, Menu, X, Sun, Moon, ChevronDown, LogOut, Package, Gift, LayoutDashboard } from 'lucide-react';
+import { Search, Heart, ShoppingBag, User, Menu, X, Sun, Moon, ChevronDown, ChevronRight, LogOut, Package, Gift, LayoutDashboard } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
@@ -56,22 +57,13 @@ export default function LandingNav() {
     ];
 
   const zone = useNavZone();
-  const look = {
-    // Over the hero: no bar at all. The carousel hero is always blush, so ink text;
-    // the editorial (photo) hero is dark, so white text.
-    hero: { bar: 'border-transparent bg-transparent', tone: 'text-luxe-ink', white: false },
-    'hero-dark': { bar: 'border-transparent bg-transparent', tone: 'text-white', white: true },
-    // Over a dark (maroon / photo) section: a matching frosted maroon bar.
-    dark: {
-      bar: 'border-white/10 bg-luxe-ink/85 shadow-[0_8px_30px_-16px_rgba(0,0,0,0.5)] backdrop-blur-xl',
-      tone: 'text-white', white: true,
-    },
-    // Over a light section: frosted white (frosted ink in dark theme).
-    light: {
-      bar: 'border-luxe-ink/10 bg-white/85 shadow-[0_8px_30px_-16px_rgba(17,17,17,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-ink/85',
-      tone: 'text-luxe-ink dark:text-white', white: theme === 'dark',
-    },
-  }[zone] || {};
+  // Solid bar in the logo's own cream (#fcf3e4) so the badge blends into the
+  // header on every section (ink in dark theme).
+  const cream = {
+    bar: 'border-luxe-ink/10 bg-[#fcf3e4] shadow-[0_8px_30px_-16px_rgba(17,17,17,0.18)] dark:border-white/10 dark:bg-ink',
+    tone: 'text-luxe-ink dark:text-white', white: theme === 'dark',
+  };
+  const look = { hero: cream, 'hero-dark': cream, dark: cream, light: cream }[zone] || cream;
 
   return (
     <motion.header
@@ -81,8 +73,8 @@ export default function LandingNav() {
       className={`fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow,color] duration-300 ${look.bar}`}
     >
       <nav className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-        <Link to="/" aria-label="Beadsboutique home" className="shrink-0">
-          <Logo white={look.white} className="h-10" />
+        <Link to="/" aria-label="NutValley home" className="shrink-0">
+          <Logo white={look.white} className="h-14" />
         </Link>
 
         {/* Desktop links */}
@@ -134,7 +126,7 @@ export default function LandingNav() {
                   )}
                   {accountLinks.map(([label, to, Icon]) => (
                     <Link key={label} to={to} onClick={() => setAcc(false)}
-                      className="mt-0.5 flex items-center gap-2.5 rounded-lg px-3 py-2 transition hover:bg-luxe-gold/15">
+                      className="mt-0.5 flex items-center gap-2.5 rounded-lg px-3 py-2 transition hover:bg-luxe-cream">
                       <Icon size={16} className="text-luxe-bronze" /> {label}
                     </Link>
                   ))}
@@ -152,43 +144,60 @@ export default function LandingNav() {
         </div>
       </nav>
 
-      {/* Mobile drawer */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 xl:hidden"
-          >
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+      {/* Mobile drawer — portalled to <body>: the header's backdrop-blur would
+          otherwise become the containing block for this fixed overlay and clip it. */}
+      {createPortal(
+        <AnimatePresence>
+          {open && (
             <motion.div
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-              className="absolute right-0 top-0 flex h-full w-[82%] max-w-sm flex-col bg-white p-8 shadow-2xl dark:bg-ink"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] xl:hidden"
             >
-              <div className="flex items-center justify-between">
-                <Logo className="h-9" />
-                <button onClick={() => setOpen(false)} className="rounded-full p-2 hover:bg-black/5" aria-label="Close"><X size={22} /></button>
-              </div>
-              <ul className="mt-12 space-y-1">
-                {LINKS.map(([label, to], i) => (
-                  <motion.li key={label}
-                    initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + i * 0.06 }}>
-                    <Link to={to} onClick={() => setOpen(false)}
-                      className="block border-b border-luxe-line py-4 font-display text-2xl text-luxe-ink dark:border-white/10 dark:text-white">
-                      {label}
-                    </Link>
-                  </motion.li>
-                ))}
-              </ul>
-              <Link to={user ? '/profile' : '/login'} onClick={() => setOpen(false)}
-                className="mt-auto rounded-full bg-luxe-ink py-3.5 text-center text-sm font-semibold text-white">
-                {user ? 'My Account' : 'Sign in'}
-              </Link>
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+              <motion.div
+                initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+                className="absolute right-0 top-0 flex h-[100dvh] w-[85%] max-w-sm flex-col bg-luxe-bg shadow-2xl dark:bg-ink"
+              >
+                <div className="flex items-center justify-between border-b border-luxe-line px-6 py-4 dark:border-white/10">
+                  <Logo className="h-12" />
+                  <button onClick={() => setOpen(false)} className="rounded-full p-2 text-luxe-ink hover:bg-black/5 dark:text-white" aria-label="Close"><X size={22} /></button>
+                </div>
+
+                <ul data-lenis-prevent className="flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+                  {LINKS.map(([label, to], i) => (
+                    <motion.li key={label}
+                      initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.08 + i * 0.05 }}>
+                      <Link to={to} onClick={() => setOpen(false)}
+                        className="group flex items-center justify-between border-b border-luxe-line py-3.5 font-display text-xl text-luxe-ink transition hover:text-luxe-gold dark:border-white/10 dark:text-white">
+                        {label}
+                        <ChevronRight size={18} className="text-luxe-ink/30 transition group-hover:translate-x-1 group-hover:text-luxe-gold dark:text-white/30" />
+                      </Link>
+                    </motion.li>
+                  ))}
+                </ul>
+
+                <div className="space-y-3 border-t border-luxe-line px-6 py-5 dark:border-white/10">
+                  <div className="grid grid-cols-3 gap-2 text-xs font-medium text-luxe-ink dark:text-white">
+                    {[['Search', '/shop', Search], ['Wishlist', '/wishlist', Heart], ['Cart', '/cart', ShoppingBag]].map(([label, to, Icon]) => (
+                      <Link key={label} to={to} onClick={() => setOpen(false)}
+                        className="flex flex-col items-center gap-1 rounded-xl bg-white py-2.5 shadow-luxe-sm dark:bg-white/5">
+                        <Icon size={18} /> {label}
+                      </Link>
+                    ))}
+                  </div>
+                  <Link to={user ? '/profile' : '/login'} onClick={() => setOpen(false)}
+                    className="block rounded-full bg-luxe-ink py-3.5 text-center text-sm font-semibold text-white">
+                    {user ? 'My Account' : 'Sign in'}
+                  </Link>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </motion.header>
   );
 }

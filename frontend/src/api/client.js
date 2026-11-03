@@ -6,7 +6,22 @@ import { optimizeImages } from '../utils/cdn';
 // use the same-origin /backend endpoint so local and deployed builds cannot
 // accidentally call a different project's database.
 const configuredApiURL = String(import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
-const apiBaseURL = configuredApiURL || `${window.location.origin}/backend`;
+
+// A "localhost" API URL only works on this computer. When the site is opened from a
+// phone on the LAN (e.g. http://192.168.1.14:5190), point the API at that same host.
+const LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\])$/i;
+function resolveApiURL(url) {
+  if (!url) return `${window.location.origin}/backend`;
+  try {
+    const u = new URL(url);
+    if (LOOPBACK.test(u.hostname) && !LOOPBACK.test(window.location.hostname)) {
+      u.hostname = window.location.hostname;
+      return u.toString().replace(/\/$/, '');
+    }
+  } catch { /* relative / malformed — use as given */ }
+  return url;
+}
+const apiBaseURL = resolveApiURL(configuredApiURL);
 
 
 const api = axios.create({

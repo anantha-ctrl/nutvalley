@@ -16,9 +16,9 @@ import { inr, dateFmt, timeAgo, statusColor } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 // ── Chart tooltip styles ──
-const TOOLTIP = { background: '#4f1520', border: '1px solid #b8745a44', borderRadius: 12 };
+const TOOLTIP = { background: '#23602e', border: '1px solid #c9971c44', borderRadius: 12 };
 const LABEL  = { color: '#ffffff', fontWeight: 600, marginBottom: 2 };
-const ITEM   = { color: '#dba58c' };
+const ITEM   = { color: '#e3bd5b' };
 
 const STATUS_COLORS = {
   pending: '#f59e0b', processing: '#3b82f6', packed: '#6366f1',
@@ -221,7 +221,7 @@ function WelcomeBanner({ name, refreshing, lastUpdated, connection, onRefresh, p
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
       className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-forest-deep via-ink to-ink-soft p-6 text-white shadow-luxe sm:p-8"
     >
-      {/* Decorative: soft rose-gold glow + bead arc + logo watermark */}
+      {/* Decorative: soft gold glow + arc + logo watermark */}
       <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-gold/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-gold/10 blur-3xl" />
       <svg className="pointer-events-none absolute -right-20 top-1/2 hidden h-56 w-56 -translate-y-1/2 text-gold/25 lg:block" viewBox="0 0 200 200" fill="currentColor" aria-hidden="true">
@@ -367,8 +367,8 @@ function RevenueChart({ data: raw }) {
         <ComposedChart data={monthData}>
           <defs>
             <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#b8745a" stopOpacity={0.45} />
-              <stop offset="100%" stopColor="#b8745a" stopOpacity={0} />
+              <stop offset="0%" stopColor="#c9971c" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="#c9971c" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
@@ -376,7 +376,7 @@ function RevenueChart({ data: raw }) {
           <YAxis yAxisId="left" stroke="#888" fontSize={12} />
           <YAxis yAxisId="right" orientation="right" stroke="#888" fontSize={12} allowDecimals={false} />
           <Tooltip contentStyle={TOOLTIP} labelStyle={LABEL} itemStyle={ITEM} formatter={(v, n, item) => (item?.dataKey === 'orders' ? v : inr(v))} />
-          <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#b8745a" strokeWidth={2} fill="url(#revGrad)" name="Revenue" />
+          <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#c9971c" strokeWidth={2} fill="url(#revGrad)" name="Revenue" />
           <Bar yAxisId="right" dataKey="orders" fill="#3b82f6" opacity={0.3} radius={[4, 4, 0, 0]} barSize={20} name="Orders" />
         </ComposedChart>
       </ResponsiveContainer>
@@ -389,7 +389,7 @@ function RevenueChart({ data: raw }) {
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function StatusDonut({ data: raw, total }) {
   const pieData = useMemo(
-    () => raw.map((s) => ({ name: s.status, value: Number(s.count), fill: STATUS_COLORS[s.status] || '#b8745a' })),
+    () => raw.map((s) => ({ name: s.status, value: Number(s.count), fill: STATUS_COLORS[s.status] || '#c9971c' })),
     [raw]
   );
 

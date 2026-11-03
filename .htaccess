@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-#  Beadsboutique — app folder hardening
+#  NutValley — app folder hardening
 #  Only the app's public entry points should be reachable over HTTP.
 #  Secrets, source, logs, DB dumps and dot-files are blocked.
 # ─────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import Reveal from '../lib/Reveal';
 import QuickViewModal from '../../components/QuickViewModal';
+import NutVisual from '../three/NutVisual';
 
 const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
 const EASE = [0.22, 1, 0.36, 1];
@@ -27,8 +28,8 @@ export default function BestSeller() {
   }, []);
 
   return (
-    <section className="bg-luxe-bg py-24 dark:bg-ink sm:py-28">
-      <div className="mx-auto max-w-[1400px] px-6 sm:px-10 lg:px-12">
+    <section className="bg-luxe-bg pt-8 pb-12 dark:bg-ink sm:pt-10 sm:pb-16">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-10 lg:px-12">
         <div className="mb-12 text-center">
           <Reveal><p className="mb-4 text-xs uppercase tracking-[0.4em] text-luxe-bronze">Most loved</p></Reveal>
           <Reveal delay={0.05}>
@@ -40,7 +41,7 @@ export default function BestSeller() {
         </div>
 
         {products === null ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="aspect-[3/4] animate-pulse rounded-luxe bg-luxe-ink/5" />
             ))}
@@ -49,11 +50,11 @@ export default function BestSeller() {
           <p className="text-center text-luxe-ink/50">Best sellers are on their way. Check back soon.</p>
         ) : (
           // Flex (not grid) so a short list centres instead of hugging the left column.
-          <div className="flex flex-wrap justify-center gap-5">
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 sm:gap-5">
             {products.map((p, i) => (
               <motion.div
                 key={p.id}
-                className="w-full sm:w-[calc(50%-0.625rem)] lg:w-[calc(25%-0.9375rem)]"
+                className="w-[calc(50%-0.375rem)] sm:w-[calc(50%-0.625rem)] lg:w-[calc(25%-0.9375rem)]"
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
@@ -81,15 +82,15 @@ function LuxeCard({ product, onQuickView }) {
     <div className="group relative">
       <div className="relative overflow-hidden rounded-luxe bg-white shadow-luxe-sm dark:bg-ink-soft">
         <Link to={`/product/${product.slug}`} className="block aspect-[3/4] overflow-hidden">
-          <img
-            src={product.image || 'https://placehold.co/600x800/f6e6e4/3a0d14?text=Beadsboutique'}
-            alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
+          <NutVisual
+            src={product.image} label={`${product.category_slug || ''} ${product.name}`} alt={product.name}
+            className="h-full w-full"
+            imgClassName="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
           />
         </Link>
 
         {off > 0 && (
-          <span className="absolute left-3 top-3 rounded-full bg-luxe-ink px-3 py-1 text-[11px] font-semibold text-white">
+          <span className="absolute left-2 top-2 rounded-full bg-luxe-ink px-2 py-0.5 text-[10px] sm:left-3 sm:top-3 sm:px-3 sm:py-1 sm:text-[11px] font-semibold text-white">
             −{off}%
           </span>
         )}
@@ -98,7 +99,7 @@ function LuxeCard({ product, onQuickView }) {
         <button
           onClick={() => toggle(product)}
           aria-label="Wishlist"
-          className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition ${
+          className={`absolute right-2 top-2 flex h-8 w-8 items-center sm:right-3 sm:top-3 sm:h-10 sm:w-10 justify-center rounded-full backdrop-blur-md transition ${
             wished ? 'bg-luxe-gold text-luxe-ink' : 'bg-white/80 text-luxe-ink hover:bg-white'
           }`}
         >
@@ -106,18 +107,18 @@ function LuxeCard({ product, onQuickView }) {
         </button>
 
         {/* Hover action bar */}
-        <div className="pointer-events-none absolute inset-x-3 bottom-3 flex translate-y-4 gap-2 opacity-0 transition-all duration-500 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="pointer-events-none absolute inset-x-2 bottom-2 flex translate-y-4 gap-1.5 sm:inset-x-3 sm:bottom-3 sm:gap-2 opacity-0 transition-all duration-500 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
           <button
             onClick={() => add(product, null, 1)}
             disabled={loading}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-luxe-ink py-3 text-sm font-semibold text-white transition hover:bg-luxe-bronze disabled:opacity-60"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-luxe-ink py-2 text-xs font-semibold sm:gap-2 sm:py-3 sm:text-sm text-white transition hover:bg-luxe-cream hover:text-luxe-ink disabled:opacity-60"
           >
             <ShoppingBag size={15} /> Add
           </button>
           <button
             onClick={onQuickView}
             aria-label="Quick view"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-luxe-ink shadow-luxe-sm transition hover:bg-luxe-gold"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-luxe-ink sm:h-11 sm:w-11 shadow-luxe-sm transition hover:bg-luxe-cream hover:text-luxe-ink"
           >
             <Eye size={17} />
           </button>
@@ -125,9 +126,9 @@ function LuxeCard({ product, onQuickView }) {
       </div>
 
       {/* Meta */}
-      <div className="mt-4 px-1">
+      <div className="mt-3 px-0.5 sm:mt-4 sm:px-1">
         <div className="flex items-start justify-between gap-2">
-          <Link to={`/product/${product.slug}`} className="font-medium text-luxe-ink line-clamp-1 hover:text-luxe-bronze dark:text-white">
+          <Link to={`/product/${product.slug}`} className="text-sm font-medium text-luxe-ink line-clamp-1 hover:text-luxe-bronze sm:text-base dark:text-white">
             {product.name}
           </Link>
           {product.rating_avg > 0 && (
@@ -136,9 +137,9 @@ function LuxeCard({ product, onQuickView }) {
             </span>
           )}
         </div>
-        <div className="mt-1.5 flex items-center gap-2">
-          <span className="font-semibold text-luxe-ink dark:text-white">{inr(product.price)}</span>
-          {off > 0 && <span className="text-sm text-luxe-ink/40 line-through dark:text-white/40">{inr(product.mrp)}</span>}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 sm:mt-1.5">
+          <span className="text-sm font-semibold text-luxe-ink dark:text-white sm:text-base">{inr(product.price)}</span>
+          {off > 0 && <span className="text-xs text-luxe-ink/40 line-through sm:text-sm dark:text-white/40">{inr(product.mrp)}</span>}
         </div>
       </div>
     </div>

@@ -106,7 +106,7 @@ class MiscController
             ->execute([$name, $email, $subject, $message]);
 
         // 2) Notify the store inbox. Reply-To = customer so a reply reaches them.
-        $inbox = Setting::get('store_contact_to') ?: env('MAIL_FROM', 'beadsboutiquejewellery@gmail.com');
+        $inbox = Setting::get('store_contact_to') ?: env('MAIL_FROM', 'nutsvally@gmail.com');
         $e = fn($s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
         Mailer::send(
             $inbox,
@@ -134,13 +134,13 @@ class MiscController
         ];
 
         Response::success([
-            'hero_eyebrow'  => Setting::get('landing_hero_eyebrow', 'Beadsboutique — Handcrafted Jewellery'),
-            'hero_title'    => Setting::get('landing_hero_title', 'Handcrafted beads, made to shine.'),
-            'hero_accent'   => Setting::get('landing_hero_accent', 'Jewellery made for you.'),
-            'hero_subtitle' => Setting::get('landing_hero_subtitle', 'Necklaces, bracelets, earrings, rings & anklets — delivered across India.'),
-            'hero_cta'      => Setting::get('landing_hero_cta', 'Shop Jewellery'),
+            'hero_eyebrow'  => Setting::get('landing_hero_eyebrow', 'NutValley — Premium Nuts & Dry Fruits'),
+            'hero_title'    => Setting::get('landing_hero_title', 'Nature\'s finest, packed fresh.'),
+            'hero_accent'   => Setting::get('landing_hero_accent', 'Healthy snacking made easy.'),
+            'hero_subtitle' => Setting::get('landing_hero_subtitle', 'Almonds, cashews, pistachios, walnuts, dates & more — delivered across India.'),
+            'hero_cta'      => Setting::get('landing_hero_cta', 'Shop Now'),
             'hero_cta_link' => Setting::get('landing_hero_cta_link', '/shop'),
-            'story_quote'   => Setting::get('landing_story_quote', 'Our mission is simple — jewellery that feels personal and is made to be loved.'),
+            'story_quote'   => Setting::get('landing_story_quote', 'Our mission is simple — pure, fresh nuts and dry fruits that make every day a little healthier.'),
             'stats'         => $stats,
             // Editorial imagery (admin-editable URLs; empty -> frontend uses its built-in default).
             'hero_image'    => Setting::get('landing_img_hero', ''),
@@ -156,9 +156,9 @@ class MiscController
     public function storeInfo(array $p): void
     {
         Response::success([
-            'name'              => Setting::get('store_name', 'Beadsboutique'),
+            'name'              => Setting::get('store_name', 'NutValley'),
             'logo'              => Setting::get('store_logo', ''),
-            'email'             => Setting::get('store_contact_email', 'beadsboutiquejewellery@gmail.com'),
+            'email'             => Setting::get('store_contact_email', 'nutsvally@gmail.com'),
             'phone'             => Setting::get('store_contact_phone', '+91 98765 43210'),
             'address'           => Setting::get('store_address', 'Bengaluru, India'),
             'announcement'      => Setting::get('store_announcement', ''),
@@ -183,7 +183,7 @@ class MiscController
             // Payment rule: orders up to this amount are COD-only; above it, online-only.
             'cod_max_amount' => (float) Setting::get('cod_max_amount', 1000),
             'upi_id'         => $upiId,
-            'payee_name'     => Setting::get('upi_payee_name', '') ?: Setting::get('store_name', 'Beadsboutique'),
+            'payee_name'     => Setting::get('upi_payee_name', '') ?: Setting::get('store_name', 'NutValley'),
             'qr_image'       => Setting::get('upi_qr_image', ''),
             'bank_name'      => Setting::get('bank_name', ''),
             'account_name'   => Setting::get('bank_account_name', ''),

@@ -5,32 +5,38 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Brand palette derived from the Beadsboutique logo
+        // Brand palette derived from the NutValley logo
         gold: {
-          DEFAULT: '#b8745a',  // rose-gold accent (buttons, highlights)
-          light: '#dba58c',
-          dark: '#8f4f3c',
+          DEFAULT: '#c9971c',  // logo mustard gold (buttons, highlights)
+          light: '#e3bd5b',
+          dark: '#9c7414',
         },
-        // `ink` is the primary dark/brand colour — the logo's deep wine maroon
+        // `ink` is the primary dark/brand colour — the logo's deep forest green
         ink: {
-          DEFAULT: '#3a0d14',  // logo maroon, deepened for backgrounds
-          soft: '#4f1520',
-          line: '#6b2230',
+          DEFAULT: '#1a4d23',  // logo green, deepened for backgrounds
+          soft: '#23602e',
+          line: '#2f7a3b',
         },
         forest: {
-          DEFAULT: '#3a0d14',
-          light: '#4f1520',
-          deep: '#24070c',
+          DEFAULT: '#1a4d23',
+          light: '#23602e',
+          deep: '#0f3316',
         },
-        sage: '#d9a3ae',       // dusty rose
-        cream: '#fdf2f2',      // blush cream
+        navy: {
+          DEFAULT: '#1d2f74',  // logo butterfly / tagline navy
+          light: '#2c43a0',
+          deep: '#131f4f',
+        },
+        sage: '#a9c98a',       // leaf green
+        cream: '#fbf5e6',      // logo cream
         // Luxury landing palette (editorial / light theme)
         luxe: {
-          bg: '#fbf4f2',      // soft blush backdrop
-          ink: '#3a0d14',     // primary text = wine maroon
-          gold: '#b8745a',    // accent = rose gold
-          bronze: '#8f4f3c',  // secondary
-          line: '#eedfdc',    // hairline dividers
+          bg: '#fbf6ea',      // logo cream backdrop
+          ink: '#1a4d23',     // primary text = forest green
+          gold: '#c9971c',    // accent = mustard gold
+          bronze: '#1d2f74',  // secondary = navy
+          line: '#ece2c6',    // hairline dividers
+          cream: '#fcf3e4',   // logo background — used for hover states
         },
       },
       fontFamily: {
@@ -39,7 +45,7 @@ export default {
       },
       boxShadow: {
         glass: '0 8px 32px rgba(0,0,0,0.18)',
-        glow: '0 0 30px rgba(184,116,90,0.30)',
+        glow: '0 0 30px rgba(201,151,28,0.30)',
         luxe: '0 24px 60px -20px rgba(17,17,17,0.22)',
         'luxe-sm': '0 12px 30px -12px rgba(17,17,17,0.18)',
       },
@@ -48,8 +54,8 @@ export default {
         'luxe-lg': '30px',
       },
       backgroundImage: {
-        'hero-gradient': 'linear-gradient(120deg,#24070c 0%,#3a0d14 55%,#4f1520 100%)',
-        'gold-sheen': 'linear-gradient(120deg,#b8745a 0%,#dba58c 45%,#8f4f3c 100%)',
+        'hero-gradient': 'linear-gradient(120deg,#0f3316 0%,#1a4d23 55%,#23602e 100%)',
+        'gold-sheen': 'linear-gradient(120deg,#c9971c 0%,#e3bd5b 45%,#9c7414 100%)',
       },
       keyframes: {
         float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-8px)' } },

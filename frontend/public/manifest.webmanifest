@@ -1,12 +1,12 @@
 {
-  "name": "Beadsboutique Jewellery",
-  "short_name": "Beadsboutique",
-  "description": "Handcrafted beaded jewellery, curated for you.",
+  "name": "NutValley",
+  "short_name": "NutValley",
+  "description": "Premium nuts & dry fruits, packed fresh.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3a0d14",
+  "background_color": "#fbf6ea",
+  "theme_color": "#1a4d23",
   "orientation": "portrait-primary",
   "categories": [
     "shopping",

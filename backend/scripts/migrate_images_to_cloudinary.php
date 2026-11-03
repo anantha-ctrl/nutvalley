@@ -23,12 +23,12 @@ if (!Cloudinary::isConfigured()) {
 $db = db();
 // table, primary key, image column, Cloudinary folder, optional extra WHERE
 $targets = [
-    ['categories',     'id',  'image_url',          'beadsboutique/categories', ''],
-    ['banners',        'id',  'image_url',          'beadsboutique/banners',    ''],
-    ['product_images', 'id',  'image_url',          'beadsboutique/products',   ''],
-    ['users',          'id',  'avatar_url',         'beadsboutique/avatars',    ''],
-    ['settings',       'key', 'value',              'beadsboutique/branding',   ''],
-    ['orders',         'id',  'payment_screenshot', 'beadsboutique/payments',   ''],
+    ['categories',     'id',  'image_url',          'nutsvally/categories', ''],
+    ['banners',        'id',  'image_url',          'nutsvally/banners',    ''],
+    ['product_images', 'id',  'image_url',          'nutsvally/products',   ''],
+    ['users',          'id',  'avatar_url',         'nutsvally/avatars',    ''],
+    ['settings',       'key', 'value',              'nutsvally/branding',   ''],
+    ['orders',         'id',  'payment_screenshot', 'nutsvally/payments',   ''],
 ];
 
 $moved = $failed = 0;

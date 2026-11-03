@@ -42,9 +42,9 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
         {/* Brand + contact */}
         <div className="lg:col-span-4">
-          <Logo white className="h-14" />
+          <Logo white className="h-20" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-gray-400">
-            Handcrafted beaded jewellery — necklaces, bracelets, earrings and more, made with care.
+            Premium nuts & dry fruits — almonds, cashews, pistachios, dates and more, packed with care.
           </p>
           {CONTACTS.length > 0 && (
             <ul className="mt-5 space-y-2.5 text-sm">

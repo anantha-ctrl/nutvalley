@@ -8,7 +8,7 @@ class Cloudinary
      * Upload a local file path or data URI to Cloudinary.
      * Returns ['url' => ..., 'public_id' => ...] or null on failure.
      */
-    public static function upload(string $file, string $folder = 'beadsboutique'): ?array
+    public static function upload(string $file, string $folder = 'NutValley'): ?array
     {
         $cloud  = env('CLOUDINARY_CLOUD_NAME');
         $key    = env('CLOUDINARY_API_KEY');

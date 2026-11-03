@@ -29,9 +29,20 @@ function load_env(string $path): void
         return;
     }
     $store = &env_store();
+    // [development] / [production] blocks apply only on their own host; any
+    // other section (e.g. [shared]) or no section at all always applies.
+    $active  = env_is_local() ? 'development' : 'production';
+    $section = null;
     foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $line = trim($line);
         if ($line === '' || $line[0] === '#') {
+            continue;
+        }
+        if ($line[0] === '[' && substr($line, -1) === ']') {
+            $section = strtolower(trim(substr($line, 1, -1)));
+            continue;
+        }
+        if (in_array($section, ['development', 'production'], true) && $section !== $active) {
             continue;
         }
         [$key, $value] = array_pad(explode('=', $line, 2), 2, '');
@@ -49,6 +60,17 @@ function load_env(string $path): void
             $_ENV[$key] = $value; // harmless local convenience; not used for lookups
         }
     }
+}
+
+/** True on a dev machine (CLI, or a localhost / LAN-IP request). */
+function env_is_local(): bool
+{
+    if (PHP_SAPI === 'cli') {
+        return true;
+    }
+    $host = strtolower(preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? ''));
+    return $host === '' || $host === 'localhost' || $host === '127.0.0.1' || $host === '[::1]'
+        || substr($host, -6) === '.local' || preg_match('/^(192\.168|10)\.\d+\.\d+(\.\d+)?$/', $host);
 }
 
 function env(string $key, $default = null)

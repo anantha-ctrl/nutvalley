@@ -20,7 +20,7 @@ export default function Contact() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-16">
       <p className="text-xs uppercase tracking-[0.3em] text-gold">Get in touch</p>
-      <h1 className="mt-2 font-display text-4xl font-bold">Contact Beadsboutique</h1>
+      <h1 className="mt-2 font-display text-4xl font-bold">Contact NutValley</h1>
       <div className="mt-10 grid gap-10 md:grid-cols-2">
         <div className="space-y-6">
           {[[Mail, 'Email', info.email], [Phone, 'Phone', info.phone], [MapPin, 'Studio', info.address]].map(([Icon, t, v]) => (

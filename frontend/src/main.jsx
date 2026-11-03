@@ -27,7 +27,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 <Toaster
                   position="top-center"
                   toastOptions={{
-                    style: { background: '#4f1520', color: '#fff', border: '1px solid #b8745a44' },
+                    style: { background: '#23602e', color: '#fff', border: '1px solid #c9971c44' },
                   }}
                 />
               </CompareProvider>

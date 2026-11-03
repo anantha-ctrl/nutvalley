@@ -56,6 +56,27 @@ class AdminProductController
         Response::success(['id' => $productId, 'slug' => $slug], 'Product created', 201);
     }
 
+    /** GET /api/admin/products/{id} — full product (incl. inactive) for the edit form. */
+    public function show(array $p): void
+    {
+        Auth::admin();
+        $db = db();
+        $id = (int) $p['id'];
+        $stmt = $db->prepare('SELECT * FROM products WHERE id=?');
+        $stmt->execute([$id]);
+        $product = $stmt->fetch();
+        if (!$product) {
+            Response::error('Product not found', 404);
+        }
+        $imgs = $db->prepare('SELECT image_url FROM product_images WHERE product_id=? ORDER BY is_primary DESC, sort_order, id');
+        $imgs->execute([$id]);
+        $product['images'] = $imgs->fetchAll(PDO::FETCH_COLUMN);
+        $vars = $db->prepare('SELECT id, size, color, color_hex, price, mrp, sku, stock FROM product_variants WHERE product_id=? ORDER BY COALESCE(price, 0), id');
+        $vars->execute([$id]);
+        $product['variants'] = $vars->fetchAll();
+        Response::success($product);
+    }
+
     public function update(array $p): void
     {
         Auth::admin();
@@ -159,7 +180,11 @@ class AdminProductController
      * Columns (header names are case/space-insensitive; name, category, price required for new rows):
      *   name, category (name or slug — auto-created if new), price, mrp, stock, low_stock_alert,
      *   brand, description, images (URLs separated by "|"; "image" also accepted),
-     *   specifications ("Material: Glass beads | Length: 18 in"),
+     *   specifications ("Origin: California | Weight: 500 g"),
+     *   variants — pack sizes as "size = price / mrp / stock" joined by "|", e.g.
+     *     "250 g = 299 / 399 / 20 | 500 g = 549 / 699 / 15 | 1 kg · Jar = 999 / 1299 / 10";
+     *     when given, price / mrp / stock come from them (cheapest pack, total stock),
+
      *   active, featured, trending, returnable, free_shipping (yes/no), shipping_fee (₹, when not free).
      * A row whose name matches an existing product (case-insensitive) UPDATES that product —
      * only the columns filled in on the row are changed — so the same sheet can be re-uploaded
@@ -220,9 +245,42 @@ class AdminProductController
             $catRaw = $val($r, 'category');
 
             if ($name === null) { $errors[] = "Row $line: 'name' is required"; continue; }
+
+            // Pack sizes: "250 g = 299 / 399 / 20 | 500 g = 549 / 699 / 15" (size = price / mrp / stock).
+            $variants = null;
+            if (($varRaw = $val($r, 'variants', 'variant', 'pack_sizes')) !== null) {
+                $variants = [];
+                foreach (array_filter(array_map('trim', explode('|', $varRaw))) as $chunk) {
+                    [$size, $nums] = array_pad(array_map('trim', explode('=', $chunk, 2)), 2, '');
+                    [$vp, $vm, $vs] = array_pad(array_map(fn ($x) => $num(trim($x) === '' ? null : trim($x)), explode('/', $nums)), 3, null);
+                    if ($size === '' || $vp === null || !is_numeric($vp) || (float) $vp <= 0) {
+                        $variants = "Row $line: variant '$chunk' must look like '250 g = 299 / 399 / 20'";
+                        break;
+                    }
+                    // "250g jar" -> "250 g · jar" (same label the Add Product form stores)
+                    if (preg_match('/^([\d.]+)\s*(kg|g)\b\s*(?:[·x×\-]\s*)?(.*)$/iu', $size, $m)) {
+                        $size = ((float) $m[1] + 0) . ' ' . strtolower($m[2]) . ($m[3] !== '' ? ' · ' . $m[3] : '');
+                    }
+                    $variants[] = [
+                        'size'  => $size,
+                        'price' => (float) $vp,
+                        'mrp'   => ($vm !== null && is_numeric($vm)) ? max((float) $vm, (float) $vp) : null,
+                        'stock' => ($vs !== null && is_numeric($vs)) ? max(0, (int) $vs) : 0,
+                    ];
+                }
+                if (is_string($variants)) { $errors[] = $variants; continue; }
+                if ($variants) {
+                    // Like the form: cheapest pack is the "from" price, stock is the total.
+                    $cheapest = array_reduce($variants, fn ($a, $b) => $a === null || $b['price'] < $a['price'] ? $b : $a);
+                    $price = (string) $cheapest['price'];
+                    $mrp   = (string) ($cheapest['mrp'] ?? $cheapest['price']);
+                    $r['stock'] = (string) array_sum(array_column($variants, 'stock'));
+                }
+            }
+
             if ($price !== null && !is_numeric($price)) { $errors[] = "Row $line: 'price' must be a number"; continue; }
             if ($mrp !== null && !is_numeric($mrp)) { $errors[] = "Row $line: 'mrp' must be a number"; continue; }
-            if (!$existingId && $price === null) { $errors[] = "Row $line: 'price' is required for a new product"; continue; }
+            if (!$existingId && $price === null) { $errors[] = "Row $line: 'price' (or 'variants') is required for a new product"; continue; }
             if (!$existingId && $catRaw === null) { $errors[] = "Row $line: 'category' is required for a new product"; continue; }
 
             // Resolve / auto-create the category, reusing it for later rows.
@@ -239,7 +297,7 @@ class AdminProductController
                 }
             }
 
-            // "Material: Glass beads | Length: 18 in" -> {"Material":"Glass beads","Length":"18 in"}
+            // "Origin: California | Weight: 500 g" -> {"Origin":"California","Weight":"500 g"}
             $specs = null;
             if (($specRaw = $val($r, 'specifications', 'specs')) !== null) {
                 $specs = [];
@@ -308,6 +366,10 @@ class AdminProductController
                     foreach ($images as $n => $url) {
                         $imgIns->execute([$pid, $url, $n === 0 ? 1 : 0, $n]);
                     }
+                }
+                if ($variants) { // the variants column replaces the product's pack sizes
+                    $db->prepare('DELETE FROM product_variants WHERE product_id=?')->execute([$pid]);
+                    $this->syncVariants($pid, $variants);
                 }
                 $db->commit();
                 $existingId ? $updated++ : $created++;
@@ -404,7 +466,7 @@ class AdminProductController
             $url = is_array($img) ? ($img['url'] ?? '') : $img;
             $publicId = null;
             if (str_starts_with($url, 'data:image')) {
-                $up = Cloudinary::upload($url, 'beadsboutique/products');
+                $up = Cloudinary::upload($url, 'nutsvally/products');
                 if ($up) {
                     $url = $up['url'];
                     $publicId = $up['public_id'];

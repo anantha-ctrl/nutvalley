@@ -100,6 +100,8 @@ class OrderController
     public function placeCod(array $p): void
     {
         $userId = Auth::id();
+        // The store accepts UPI only — Cash on Delivery is switched off.
+        Response::error('Cash on Delivery is not available. Please pay via UPI.', 422);
         $built = self::buildOrderData($userId, Request::body());
         // COD is only allowed up to the threshold; bigger carts must pay online.
         if (!self::codAllowed((float) $built['total'])) {
@@ -130,7 +132,7 @@ class OrderController
             Response::error('Please upload a payment screenshot', 422);
         }
         if (Setting::get('upi_id', '') === '') {
-            Response::error('Online UPI payment is not configured. Please choose Cash on Delivery.', 400);
+            Response::error('UPI payment is not configured yet. Please contact the store.', 400);
         }
 
         $built = self::buildOrderData($userId, $body);
@@ -139,7 +141,7 @@ class OrderController
         // Upload the proof screenshot to Cloudinary when configured; otherwise
         // keep the data URI inline (payment_screenshot is MEDIUMTEXT).
         if (str_starts_with($shot, 'data:image')) {
-            $up = Cloudinary::upload($shot, 'beadsboutique/payments');
+            $up = Cloudinary::upload($shot, 'nutsvally/payments');
             if ($up) {
                 $shot = $up['url'];
             }

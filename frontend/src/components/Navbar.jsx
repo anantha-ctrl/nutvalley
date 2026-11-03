@@ -59,7 +59,7 @@ export default function Navbar() {
         <div className="max-h-96 overflow-y-auto rounded-2xl border border-black/5 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-ink">
           {suggestions.map((p) => (
             <button key={p.id} onMouseDown={() => goToProduct(p.slug)}
-              className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-gold/10">
+              className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-luxe-cream">
               <img src={productImage(p)} alt="" className="h-12 w-10 shrink-0 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{p.name}</p>
@@ -68,7 +68,7 @@ export default function Navbar() {
               <span className="shrink-0 text-sm font-semibold">{inr(p.price)}</span>
             </button>
           ))}
-          <button onMouseDown={submitSearch} className="mt-1 w-full rounded-xl p-2 text-center text-sm font-medium text-gold hover:bg-gold/10">
+          <button onMouseDown={submitSearch} className="mt-1 w-full rounded-xl p-2 text-center text-sm font-medium text-gold hover:bg-luxe-cream">
             See all results for “{q}”
           </button>
         </div>
@@ -88,7 +88,7 @@ export default function Navbar() {
           <button className="-ml-1 p-1 lg:hidden" onClick={() => setOpenMenu(true)} aria-label="menu"><Menu /></button>
 
           <Link to="/" className="flex shrink-0 items-center gap-2">
-            <Logo className="h-9 sm:h-11" />
+            <Logo className="h-12 sm:h-14" />
           </Link>
 
           {/* Desktop nav — categories straight from the DB, no fake submenus */}
@@ -104,7 +104,7 @@ export default function Navbar() {
 
           <form onSubmit={submitSearch} className="relative ml-auto hidden flex-1 max-w-xs md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jewellery…"
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search nuts & dry fruits…"
               onFocus={() => suggestions.length && setShowSuggest(true)}
               onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
               className="input !py-2 pl-10 text-sm" />
@@ -112,23 +112,23 @@ export default function Navbar() {
           </form>
 
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2 md:ml-2">
-            <Link to="/wishlist" className="relative rounded-full p-2 hover:bg-gold/10" aria-label="wishlist">
+            <Link to="/wishlist" className="relative rounded-full p-2 hover:bg-luxe-cream" aria-label="wishlist">
               <Heart size={20} />
               {wishCount > 0 && <Badge>{wishCount}</Badge>}
             </Link>
-            <Link to="/cart" className="relative rounded-full p-2 hover:bg-gold/10" aria-label="cart">
+            <Link to="/cart" className="relative rounded-full p-2 hover:bg-luxe-cream" aria-label="cart">
               <ShoppingBag size={20} />
               {count > 0 && <Badge>{count}</Badge>}
             </Link>
 
             {/* Mobile: compact account icon (full menu lives in the hamburger drawer) */}
-            <Link to={user ? '/profile' : '/login'} className="rounded-full p-2 hover:bg-gold/10 lg:hidden" aria-label="account">
+            <Link to={user ? '/profile' : '/login'} className="rounded-full p-2 hover:bg-luxe-cream lg:hidden" aria-label="account">
               {user ? <Avatar user={user} size={24} /> : <User size={20} />}
             </Link>
 
             {user ? (
               <div className="group relative hidden lg:block">
-                <button className="flex items-center gap-2 rounded-full p-1.5 hover:bg-gold/10"><Avatar user={user} size={28} /></button>
+                <button className="flex items-center gap-2 rounded-full p-1.5 hover:bg-luxe-cream"><Avatar user={user} size={28} /></button>
                 <div className="invisible absolute right-0 top-full w-48 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
                   <div className="rounded-2xl border border-black/5 bg-white p-2 text-sm shadow-xl dark:border-white/10 dark:bg-ink">
                     <p className="px-3 py-2 font-semibold">{user.name}</p>
@@ -157,14 +157,14 @@ export default function Navbar() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpenMenu(false)} />
           <div className="absolute left-0 top-0 flex h-full w-[82%] max-w-xs flex-col overflow-y-auto bg-white p-6 dark:bg-ink">
             <div className="mb-5 flex items-center justify-between">
-              <Logo className="h-9" />
+              <Logo className="h-12" />
               <button onClick={() => setOpenMenu(false)} aria-label="close menu"><X /></button>
             </div>
 
             {/* Search */}
             <form onSubmit={submitSearch} className="relative mb-5">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jewellery…"
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search nuts & dry fruits…"
                 className="input !py-2.5 pl-10 text-sm" />
               {SuggestList}
             </form>
@@ -174,10 +174,10 @@ export default function Navbar() {
             <ul className="space-y-1">
               {cats.map((c) => (
                 <li key={c.id}>
-                  <Link to={`/category/${c.slug}`} onClick={() => setOpenMenu(false)} className="block rounded-lg px-2 py-2 font-medium hover:bg-gold/10">{c.name}</Link>
+                  <Link to={`/category/${c.slug}`} onClick={() => setOpenMenu(false)} className="block rounded-lg px-2 py-2 font-medium hover:bg-luxe-cream">{c.name}</Link>
                 </li>
               ))}
-              <li><Link to="/shop" onClick={() => setOpenMenu(false)} className="block rounded-lg px-2 py-2 hover:bg-gold/10">All Products</Link></li>
+              <li><Link to="/shop" onClick={() => setOpenMenu(false)} className="block rounded-lg px-2 py-2 hover:bg-luxe-cream">All Products</Link></li>
             </ul>
 
             {/* Account */}
@@ -217,9 +217,9 @@ const Badge = ({ children }) => (
 );
 
 const Dropdown = ({ to, children }) => (
-  <Link to={to} className="block rounded-lg px-3 py-2 hover:bg-gold/10">{children}</Link>
+  <Link to={to} className="block rounded-lg px-3 py-2 hover:bg-luxe-cream">{children}</Link>
 );
 
 const DrawerLink = ({ to, close, children }) => (
-  <li><Link to={to} onClick={close} className="block rounded-lg px-2 py-2 hover:bg-gold/10">{children}</Link></li>
+  <li><Link to={to} onClick={close} className="block rounded-lg px-2 py-2 hover:bg-luxe-cream">{children}</Link></li>
 );

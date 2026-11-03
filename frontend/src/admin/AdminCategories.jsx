@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, ImagePlus, X, Link2, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, ImagePlus, X, Link2, EyeOff, Search, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
 import { Spinner, Checkbox } from '../components/ui';
 
 const BLANK = { id: null, name: '', description: '', image_url: '', parent_id: '', is_active: 1 };
 const isImageUrl = (v) => /^https?:\/\/\S+$/i.test(v) || /^data:image\//i.test(v);
+// placehold.co images are seed placeholders, not real photos — show the branded tile instead.
+const hasPhoto = (v) => !!v && !/placehold\.co/i.test(v);
+const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+const Stat = ({ label, value }) => (
+  <span className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white px-3.5 py-1.5 shadow-sm dark:border-white/10 dark:bg-white/5">
+    <b className="font-display text-base text-forest dark:text-white">{value}</b>
+    <span className="text-gray-400">{label}</span>
+  </span>
+);
 
 /**
  * Scale an uploaded photo down to fit 900×1200 (never up) and re-encode as WebP
@@ -48,6 +58,7 @@ export default function AdminCategories() {
   const [urlInput, setUrlInput] = useState('');
   const [show, setShow] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [q, setQ] = useState('');
 
   const load = () => api.get('/api/admin/categories').then((r) => setCats(r.data.data)).catch(() => {});
   useEffect(() => {
@@ -131,12 +142,17 @@ export default function AdminCategories() {
 
   if (!cats) return <Spinner />;
 
+  const term = q.trim().toLowerCase();
+  const shown = term
+    ? cats.filter((c) => `${c.name} ${c.slug} ${c.description || ''}`.toLowerCase().includes(term))
+    : cats;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Categories</h1>
-          <p className="text-sm text-gray-400">{cats.length} categor{cats.length === 1 ? 'y' : 'ies'} · shown on the home page "Shop by category"</p>
+          <p className="text-sm text-gray-400">Shown on the home page "Shop by category" and in the store menu</p>
         </div>
         <button onClick={() => open(BLANK)} className="btn-gold !py-2 text-sm"><Plus size={16} /> Add</button>
       </div>
@@ -182,7 +198,7 @@ export default function AdminCategories() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm text-gray-400">Name *</label>
-                <input required className="input" placeholder="e.g. Bangles" value={form.name}
+                <input required className="input" placeholder="e.g. Almonds" value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
 
@@ -233,30 +249,88 @@ export default function AdminCategories() {
         </form>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cats.map((c) => (
-          <div key={c.id} className="card flex items-center gap-4 p-4">
-            <div className="h-16 w-12 shrink-0 overflow-hidden rounded-b-lg rounded-t-full bg-cream dark:bg-white/5">
-              {c.image_url
-                ? <img src={c.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-                : <div className="flex h-full w-full items-center justify-center font-display text-lg text-gold">{c.name?.[0]}</div>}
+      {/* Summary + search */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Stat label="Categories" value={cats.length} />
+          <Stat label="Live on store" value={cats.filter((c) => Number(c.is_active)).length} />
+          <Stat label="Products" value={cats.reduce((s, c) => s + (Number(c.product_count) || 0), 0)} />
+        </div>
+        <div className="relative w-full sm:w-64">
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input className="input !py-2.5 pl-10 text-sm" placeholder="Search categories…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        {shown.map((c) => {
+          const count = Number(c.product_count) || 0;
+          const active = !!Number(c.is_active);
+          return (
+            <div key={c.id} className="group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-luxe-sm dark:border-white/10 dark:bg-white/5">
+              {/* Cover — real photo, or a branded tile when it's only a placeholder */}
+              <div className="relative aspect-[16/10] overflow-hidden">
+                {hasPhoto(c.image_url) ? (
+                  <img src={c.image_url} alt={c.name} loading="lazy"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className="relative flex h-full w-full flex-col items-center justify-center bg-hero-gradient text-center">
+                    <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-gold/20 blur-2xl" />
+                    <span className="font-display text-5xl font-bold text-gold">{initials(c.name)}</span>
+                    <span className="mt-1 text-[11px] uppercase tracking-[0.3em] text-white/60">No photo yet</span>
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
+                <span className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm ${active
+                  ? 'bg-white/95 text-forest' : 'bg-gray-900/80 text-white'}`}>
+                  {active ? <><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Live</> : <><EyeOff size={12} /> Hidden</>}
+                </span>
+                <span className="absolute bottom-3 right-3 rounded-full bg-gold px-2.5 py-1 text-[11px] font-bold text-ink shadow-sm">
+                  {count > 0 ? `${count} product${count === 1 ? '' : 's'}` : 'Empty'}
+                </span>
+              </div>
+
+              <div className="space-y-3 p-4">
+                <div>
+                  <h3 className="truncate font-display text-lg font-bold">{c.name}</h3>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    /{c.slug}{c.parent_name ? ` · under ${c.parent_name}` : ''}
+                  </p>
+                  <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm text-gray-500 dark:text-gray-300">
+                    {c.description || <span className="italic text-gray-400">No description</span>}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 border-t border-black/5 pt-3 dark:border-white/10">
+                  <button onClick={() => edit(c)}
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-forest/5 px-3 py-2 text-sm font-semibold text-forest transition hover:bg-forest hover:text-white dark:bg-white/10 dark:text-white">
+                    <Pencil size={15} /> Edit
+                  </button>
+                  <a href={`/category/${c.slug}`} target="_blank" rel="noreferrer" title="View on store" aria-label={`View ${c.name} on store`}
+                    className="rounded-xl p-2.5 text-gray-500 transition hover:bg-gold/10 hover:text-gold">
+                    <ExternalLink size={16} />
+                  </a>
+                  <button onClick={() => del(c.id)} title="Delete" aria-label={`Delete ${c.name}`}
+                    className="rounded-xl p-2.5 text-rose-500 transition hover:bg-rose-500/10">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 truncate font-semibold">
-                {c.name}
-                {!Number(c.is_active) && <span title="Hidden from store" className="text-gray-400"><EyeOff size={14} /></span>}
-              </p>
-              <p className="text-sm text-gray-400">
-                {Number(c.product_count) > 0 ? `${c.product_count} products` : 'No products yet'}
-                {c.parent_name ? ` · under ${c.parent_name}` : ''}
-              </p>
-            </div>
-            <div className="flex gap-1">
-              <button onClick={() => edit(c)} className="rounded-lg p-2 hover:bg-gold/10" aria-label={`Edit ${c.name}`}><Pencil size={16} /></button>
-              <button onClick={() => del(c.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-500/10" aria-label={`Delete ${c.name}`}><Trash2 size={16} /></button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
+
+        {/* Quick "add" tile at the end of the grid */}
+        {!q && (
+          <button onClick={() => open(BLANK)}
+            className="flex min-h-[18rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gold/40 text-gold transition hover:border-gold hover:bg-gold/5">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/10"><Plus size={22} /></span>
+            <span className="font-semibold">Add category</span>
+          </button>
+        )}
+        {q && shown.length === 0 && (
+          <p className="col-span-full py-10 text-center text-sm text-gray-400">No categories match “{q}”.</p>
+        )}
       </div>
     </div>
   );

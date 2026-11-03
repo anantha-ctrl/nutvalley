@@ -34,7 +34,7 @@ class AdminSettingsController
         'order_prefix'            => 'text',
         'cod_max_amount'          => 'number',
         // Billing / POS invoice defaults
-        'billing_tax_pct'         => 'number',
+        'billing_tax_pct'         => 'decimal', // e.g. 2.5 / 5 / 12 GST
         'billing_invoice_prefix'  => 'text',
         'billing_footer_note'     => 'text',
         // Online UPI / QR payment (manual, admin-verified)
@@ -80,12 +80,15 @@ class AdminSettingsController
             if ($type === 'number') {
                 $val = (string) max(0, (int) $val);
             }
+            if ($type === 'decimal') {
+                $val = (string) round(max(0, (float) $val), 2);
+            }
             // Image uploads (store logo + landing images): push data URIs to Cloudinary
             // when configured, else store them inline (settings.value is MEDIUMTEXT).
             $isImageKey = $key === 'store_logo' || $key === 'upi_qr_image' || str_starts_with($key, 'landing_img_');
             if ($isImageKey && str_starts_with($val, 'data:image')) {
                 try {
-                    $up = Cloudinary::upload($val, 'beadsboutique/branding');
+                    $up = Cloudinary::upload($val, 'nutsvally/branding');
                     if ($up && !empty($up['url'])) {
                         $val = $up['url'];
                     }

@@ -332,7 +332,7 @@ class AdminDeliveryController
         $rows = self::queryShipments(5000);
         $cols = self::exportColumns();
         $stamp = date('Y-m-d_His');
-        $filename = "beadsboutique-shipments_$stamp.$format";
+        $filename = "nutsvally-shipments_$stamp.$format";
 
         // Nothing but the file may reach the client.
         while (ob_get_level() > 0) {
@@ -356,7 +356,7 @@ class AdminDeliveryController
         }
 
         $stats = self::stats();
-        $pdf = new Pdf('Shipments — ' . Setting::get('store_name', 'Beadsboutique'), 'landscape');
+        $pdf = new Pdf('Shipments — ' . Setting::get('store_name', 'NutValley'), 'landscape');
         $pdf->subtitle(sprintf(
             'Delivery partner: %s  |  Generated %s  |  %d shipment(s)',
             Delivery::providerLabel(), date('d M Y, H:i'), count($rows)

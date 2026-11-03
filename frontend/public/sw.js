@@ -1,6 +1,6 @@
-/* Beadsboutique service worker — app-shell caching for installability + offline fallback. */
-const CACHE = 'beadsboutique-v2';
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/logo.webp'];
+/* NutValley service worker — app-shell caching for installability + offline fallback. */
+const CACHE = 'nutvalley-v5';
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/Nut_Valley_Logo.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { useStore } from '../context/StoreContext';
 
-const DEFAULT_DESC = 'Handcrafted beaded jewellery, curated for you. Shop bangles, necklaces, harams, jhumkas, earrings and more.';
+const DEFAULT_DESC = 'Premium nuts & dry fruits, packed fresh. Shop almonds, cashews, pistachios, walnuts, dates, seeds and more.';
 
 /**
  * Per-page SEO: title, description, and Open Graph / Twitter tags.
@@ -9,7 +9,7 @@ const DEFAULT_DESC = 'Handcrafted beaded jewellery, curated for you. Shop bangle
  */
 export default function Seo({ title, description = DEFAULT_DESC, image, type = 'website' }) {
   const { name: SITE } = useStore();
-  const fullTitle = title ? `${title} — ${SITE}` : `${SITE} — Handcrafted Beaded Jewellery`;
+  const fullTitle = title ? `${title} — ${SITE}` : `${SITE} — Premium Nuts & Dry Fruits`;
   return (
     <Helmet>
       <title>{fullTitle}</title>

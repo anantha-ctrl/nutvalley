@@ -17,7 +17,7 @@ class Automation
     /** Delivery-anchored steps, in order. Each maps to settings automation_{type}_{enabled,offset}. */
     public const SEQUENCE = [
         'welcome'          => 'Welcome email',
-        'feeding_guide'    => 'Jewellery care guide',
+        'feeding_guide'    => 'Storage & freshness guide',
         'check_in'         => 'Check-in (2 weeks)',
         'review_request'   => 'Review request + referral',
         'reorder_reminder' => 'Reorder reminder',
@@ -175,10 +175,10 @@ class Automation
                     $q->execute([(int) $row['order_id']]);
                     $names = $q->fetchAll(PDO::FETCH_COLUMN) ?: [];
                 }
-                return ["$brand · How to care for your new jewellery", Mailer::feedingGuideTemplate($name, $names)];
+                return ["$brand · How to keep your nuts fresh", Mailer::feedingGuideTemplate($name, $names)];
 
             case 'check_in':
-                return ["$brand · How are you enjoying your new pieces?", Mailer::checkInTemplate($name)];
+                return ["$brand · How are you enjoying your order?", Mailer::checkInTemplate($name)];
 
             case 'review_request':
                 return ["$brand · Mind sharing a quick review? ⭐", Mailer::reviewRequestTemplate($name, $referral)];

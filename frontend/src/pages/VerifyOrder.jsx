@@ -40,7 +40,7 @@ export default function VerifyOrder() {
   return (
     <div className="min-h-screen bg-luxe-bg px-4 py-10 dark:bg-ink">
       <div className="mx-auto max-w-md">
-        <div className="mb-6 flex justify-center"><Logo className="h-10" /></div>
+        <div className="mb-6 flex justify-center"><Logo className="h-20" /></div>
 
         {loading ? (
           <div className="card flex flex-col items-center gap-3 p-10 text-gray-400">
@@ -66,7 +66,7 @@ export default function VerifyOrder() {
                   <p className={`font-display font-bold text-sm ${isPaid ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {isPaid ? 'Payment Verified & Order Authenticated ✓' : 'Order Record Found · Payment Unverified ⏳'}
                   </p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Live Database Match · Genuine Beadsboutique</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Live Database Match · Genuine NutValley</p>
                 </div>
               </div>
               <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
@@ -171,7 +171,7 @@ export default function VerifyOrder() {
         )}
 
         <p className="mt-6 text-center text-xs text-gray-400">
-          <Link to="/" className="text-gold font-semibold hover:underline">Beadsboutique</Link> · Live Database Delivery & Product Verification
+          <Link to="/" className="text-gold font-semibold hover:underline">NutValley</Link> · Live Database Delivery & Product Verification
         </p>
       </div>
     </div>

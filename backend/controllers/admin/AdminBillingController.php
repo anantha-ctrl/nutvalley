@@ -19,7 +19,7 @@ class AdminBillingController
     {
         Auth::staff();
         Response::success([
-            'store_name'    => Setting::get('store_name', 'Beadsboutique'),
+            'store_name'    => Setting::get('store_name', 'NutValley'),
             'logo'          => Setting::get('store_logo', ''),
             'address'       => Setting::get('store_address', ''),
             'phone'         => Setting::get('store_contact_phone', ''),

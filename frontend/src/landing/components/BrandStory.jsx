@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { MaskReveal } from '../lib/Reveal';
 
-const DEFAULT_QUOTE = 'Our mission is simple — jewellery that feels personal and is made to be loved.';
+const DEFAULT_QUOTE = 'Our mission is simple — pure, fresh nuts and dry fruits that make every day a little healthier.';
 
 function Word({ word, progress, start, end }) {
   const opacity = useTransform(progress, [start, end], [0.15, 1]);
@@ -15,9 +15,9 @@ export default function BrandStory({ quote }) {
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.85', 'end 0.35'] });
 
   return (
-    <section ref={ref} className="relative overflow-hidden bg-luxe-bg py-28 dark:bg-ink sm:py-40">
+    <section ref={ref} className="relative overflow-hidden bg-luxe-bg py-16 dark:bg-ink sm:py-20">
       {/* soft gradient light */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(196,154,108,0.14),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(201,151,28,0.14),transparent_55%)]" />
 
       <div className="relative mx-auto max-w-5xl px-6 text-center sm:px-10">
         <motion.p
@@ -25,7 +25,7 @@ export default function BrandStory({ quote }) {
           transition={{ duration: 0.7 }}
           className="mb-10 text-xs uppercase tracking-[0.5em] text-luxe-bronze"
         >
-          The Beadsboutique Story
+          The NutValley Story
         </motion.p>
 
         {/* word-by-word fill on scroll */}

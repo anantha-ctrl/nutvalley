@@ -745,7 +745,7 @@ class Delivery
             'first_attemp_discount'=> '0',
             'cod_amount'           => $isCod ? (string) $order['total'] : '0',
             'payment_mode'         => $isCod ? 'COD' : 'Prepaid',
-            'reseller_name'        => Setting::get('store_name', 'Beadsboutique'),
+            'reseller_name'        => Setting::get('store_name', 'NutValley'),
             'eway_bill_number'     => '',
             'gst_number'           => '',
             'what3words'           => '',
@@ -942,7 +942,7 @@ class Delivery
             'weight'          => (string) ($weight * 1000), // Delhivery expects grams
             'shipment_width'  => (string) $cfg['delivery_default_breadth'],
             'shipment_height' => (string) $cfg['delivery_default_height'],
-            'seller_name'     => Setting::get('store_name', 'Beadsboutique'),
+            'seller_name'     => Setting::get('store_name', 'NutValley'),
         ];
         $data = [
             'shipments'       => [$shipment],

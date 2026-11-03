@@ -207,7 +207,7 @@ class ProductController
         $imgs->execute([$product['id']]);
         $product['images'] = $imgs->fetchAll();
 
-        $vars = $db->prepare('SELECT id, size, color, color_hex, price, mrp, price_diff, stock FROM product_variants WHERE product_id=?');
+        $vars = $db->prepare('SELECT id, size, color, color_hex, price, mrp, price_diff, stock FROM product_variants WHERE product_id=? ORDER BY COALESCE(price, 0), id');
         $vars->execute([$product['id']]);
         $product['variants'] = $vars->fetchAll();
         $product['sizes']  = array_values(array_unique(array_filter(array_column($product['variants'], 'size'))));
@@ -267,7 +267,7 @@ class ProductController
         $target = $prod ? $front . '/product/' . rawurlencode($prod['slug']) : $front . '/shop';
         $api = MiscController::apiBase();
 
-        $store = Setting::get('store_name', 'Beadsboutique');
+        $store = Setting::get('store_name', 'NutValley');
         $title = $prod ? $prod['name'] . ' — ₹' . number_format((float) $prod['price']) : $store;
         $desc = '';
         $img = '';

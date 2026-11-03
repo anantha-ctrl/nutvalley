@@ -63,7 +63,7 @@ export default function AdminBilling() {
   useEffect(() => {
     api.get('/api/admin/billing/config')
       .then((r) => { setConfig(r.data.data); setTaxPct(String(r.data.data.tax_pct ?? 0)); })
-      .catch(() => setConfig({ store_name: 'Beadsboutique', tax_pct: 0 }));
+      .catch(() => setConfig({ store_name: 'NutValley', tax_pct: 0 }));
     loadHistory();
   }, []);
 
@@ -573,7 +573,7 @@ function InvoiceModal({ bill, config, onClose }) {
     const totRow  = (k, v, cls = '') => `<div class="row ${cls}"><span>${k}</span><span>${v}</span></div>`;
 
     // Store logo — admin-uploaded (Settings → Brand) or the bundled monogram.
-    const logoSrc = config.logo || `${window.location.origin}/logo.png`;
+    const logoSrc = config.logo || `${window.location.origin}/Nut_Valley_Logo.png`;
 
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(bill.bill_number)}</title>
       <style>
@@ -602,7 +602,7 @@ function InvoiceModal({ bill, config, onClose }) {
       </style></head><body onload="setTimeout(function(){window.print()},60)">
       <div class="center">
         <img class="logo" src="${logoSrc}" alt="" onerror="this.style.display='none'" />
-        <div class="brand">${escapeHtml(config.store_name || 'Beadsboutique')}</div>
+        <div class="brand">${escapeHtml(config.store_name || 'NutValley')}</div>
         ${config.address ? `<div class="muted">${escapeHtml(config.address)}</div>` : ''}
         ${config.phone ? `<div class="muted">Ph: ${escapeHtml(config.phone)}</div>` : ''}
         ${config.email ? `<div class="muted">${escapeHtml(config.email)}</div>` : ''}

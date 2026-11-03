@@ -1,6 +1,6 @@
 import LegalPage from './LegalPage';
 
-const intro = 'Welcome to Beads Boutique Jewellery ! We value your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, and protect your data when you visit our website or make a purchase.';
+const intro = 'Welcome to NutValley! We value your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, and protect your data when you visit our website or make a purchase.';
 
 const sections = [
   ['Comments', [

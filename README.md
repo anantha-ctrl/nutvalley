@@ -1,6 +1,6 @@
-# 💎 Beadsboutique — Handcrafted Beaded Jewellery Store
+# 🥜 NutValley — Premium Nuts & Dry Fruits Store
 
-A complete, production-ready **single-vendor e-commerce** web app for **Beads Boutique Jewellery**. It sells handcrafted beaded jewellery: necklaces, bracelets, earrings, bangles, harams, jhumkas, long chains, pendants and tikkas. It has a storefront for customers, an admin panel, and an in-store billing counter. All three read and write the same live MySQL database.
+A complete, production-ready **single-vendor e-commerce** web app for **NutValley**. It sells premium nuts & dry fruits: almonds, cashews, pistachios, walnuts, dates, dried fruits, seeds and gift boxes. It has a storefront for customers, an admin panel, and an in-store billing counter. All three read and write the same live MySQL database.
 
 **Stack:** React 18 (Vite) + Tailwind CSS · PHP 8 (dependency-free) · MySQL 8 / MariaDB · JWT + Email OTP · Cloudinary (all image uploads + optimised delivery) · Gmail SMTP · Razorpay + COD
 
@@ -8,12 +8,15 @@ A complete, production-ready **single-vendor e-commerce** web app for **Beads Bo
 
 | Token | Hex | Use |
 |---|---|---|
-| `ink` | `#3a0d14` | Deep wine: text, dark surfaces, admin sidebar |
-| `gold` | `#b8745a` (light `#dba58c`, dark `#8f4f3c`) | Rose gold: buttons, accents, active states |
-| `sage` | `#d9a3ae` | Blush pink highlights |
-| `cream` / `luxe` | `#fdf2f2` / `#fbf4f2` | Page backgrounds |
+| `ink` / `forest` | `#1a4d23` | Logo forest green: text, dark surfaces, admin sidebar |
+| `gold` | `#c9971c` (light `#e3bd5b`, dark `#9c7414`) | Logo mustard gold: buttons, accents, active states |
+| `navy` / `luxe-bronze` | `#1d2f74` | Logo butterfly navy: secondary accents, eyebrows |
+| `sage` | `#a9c98a` | Leaf-green highlights |
+| `cream` / `luxe-bg` | `#fbf5e6` / `#fbf6ea` | Page backgrounds (logo cream) |
 
-**Support email** (the only address used for the store, SMTP sender and admin alerts): **beadsboutiquejewellery@gmail.com**
+**Logo:** `frontend/public/logo.png` (full badge), `logo-mark.png` (header crop), `icon-64/192/512.png` (butterfly), `og-image.png` (share preview).
+
+**Support email** (the only address used for the store, SMTP sender and admin alerts): **nutsvally@gmail.com**
 
 > Admin alerts go to **Admin → Settings → "Message inbox"** (`store_contact_to`), falling back to the contact email, then the first admin user. Because the sender is the same Gmail account, Gmail may file self-sent alerts under *Sent / All Mail* — set the inbox to a different address to have them land in the Inbox.
 
@@ -37,7 +40,7 @@ flowchart TB
         Router --> Auth --> Ctrl --> Mailer
     end
 
-    DB[("🗄️ MySQL<br/>beadsboutique_db")]
+    DB[("🗄️ MySQL<br/>nutsvally_db")]
     Razorpay["💳 Razorpay"]
     Cloudinary["🖼️ Cloudinary"]
     Gmail["📧 Gmail SMTP"]
@@ -64,13 +67,13 @@ flowchart TB
   - Brand story with **live stats** (customers, pieces, categories, reviews, average rating) from `/api/landing`.
 - **Shop and category pages** (`pages/Shop.jsx`): search, sort (price / popularity / newest / rating / discount), on-sale filter, "Load more" pagination.
   - **Sidebar filters:** Price range (placeholders show the live min/max, e.g. `₹390 – ₹4440`), then **Categories** — "All Products" plus every category with its product count. Clicking one opens `/category/<slug>`, highlights it in gold and keeps any search / sale query. The same list is in the mobile Filters drawer.
-  - **Missing product photos:** a product with no uploaded image shows its **category banner** (`public/Banner/*.png`, e.g. Bangles → `Bangles.png`, Jummka → `Jhumka.png`, unknown → `Product1.png`) instead of a blank placeholder. Logic lives in `utils/productImage.js` and is shared by the product cards and the header search suggestions. Uploaded photos always take priority.
+  - **Missing product photos:** a product with no uploaded image shows a **labelled category placeholder** (e.g. Almonds → "Almonds", unknown → "NutValley") instead of a blank image. Logic lives in `utils/productImage.js` and is shared by the product cards and the header search suggestions. Uploaded photos always take priority.
 - **Header** (`components/Navbar.jsx`): live search suggestions and the profile menu use a **solid white** panel with a shadow. (They used the glass `.card` style, but a blur nested inside the navbar's own blur doesn't render, so they looked transparent over the products.)
 - **Navigation:** every route change scrolls to the top (`App.jsx`), so a category opened from the footer starts at its products, not the footer.
 - **Product page:**
   - 3:4 image gallery with zoom, plus a Quick View drawer.
   - Price, MRP and discount %, stock, and a returnable / free-shipping badge. The discount % is **rounded down** everywhere (backend + `utils/format.js`), so a near-total discount never shows as "-100%".
-  - **Jewellery size guide** (ring, bracelet and necklace charts).
+  - **Pack size guide** (250 g / 500 g / 1 kg servings + storage tips).
   - Reviews with rating breakdown, frequently bought together.
   - **Related products:** same category first, topped up with best-sellers / newest from the rest of the store when the category has fewer than 4. The section is hidden only when the store has no other active product.
   - **Share** (`components/ShareButtons.jsx`) — WhatsApp, Facebook, X, Instagram, copy. Every share carries the **photo, name, price / MRP / discount, a short description and the link**:
@@ -105,7 +108,7 @@ flowchart TB
   The customer is emailed only when the status actually changes (or tracking changes on a shipped order) — re-saving the same status sends nothing. OTP, password-reset, return, UPI and automation emails use the same design.
 - **Image performance:** uploads are stored as originals on Cloudinary (banners were ~2.4 MB PNGs). The API client rewrites every Cloudinary URL in **storefront** responses to `f_auto,q_auto,c_limit,w_1400` (`utils/cdn.js`), serving WebP/AVIF about **10× smaller** (homepage ≈ 38 MB → 2.9 MB). Admin responses are left untouched, so edit forms never save rewritten URLs.
 - **Policy pages** (`pages/static/`): Privacy, Terms, Returns ("Cancellation and Refund Policy") and Shipping ("Shipping & Delivery Policy") hold the store-supplied text. ⚠️ Returns and Shipping still contain `[specified time, e.g., …]` placeholders — replace them with the real time limits.
-- **About page** (`pages/static/About.jsx`, `/about`): image hero ("Jewellery that feels personal"), "Made in small batches" story, six promise cards, a collections grid (8 category banners linking to each category) and a "Start shopping" banner. The copy matches the real range (bangles, harams, temple necklaces, jhumkas…) — no rings/anklets.
+- **About page** (`pages/static/About.jsx`, `/about`): image hero ("Freshness you can taste"), "Packed fresh, in small batches" story, six promise cards, a collections grid (8 categories linking to each category) and a "Start shopping" banner.
 - **Footer** (`components/Footer.jsx`): brand column with logo, tagline, **phone / email / address** (from Admin → Settings) and social icons (only those with a URL); **Shop** links (live categories) in two short columns; Company links; a pill-style newsletter field. Bottom bar: copyright left, "Designed & Developed by CloudHawk" right, with space kept clear of the WhatsApp button.
 - **Floating WhatsApp button** (`components/WhatsAppButton.jsx`): a plain WhatsApp-green circle with the white logo and a soft shadow (no ring, no blinking dot). Hidden until a WhatsApp number is set in admin settings.
 - Mobile bottom tab bar, PWA manifest + service worker.
@@ -149,13 +152,9 @@ flowchart TB
 ## 📁 Project Structure
 
 ```
-Beadsboutique/
+NutValley/
 ├── database/
-│   ├── beadsboutique_setup.sql        # ⭐ Fresh install: creates beadsboutique_db + all tables + jewellery seed
-│   ├── seed_jewellery.sql             # Jewellery categories + store settings (insert-only)
-│   ├── migration_037_rebrand_beadsboutique.sql  # Rebrands an existing (older) DB's stored data
-│   ├── migration_038_user_avatar.sql  # users.avatar_url → MEDIUMTEXT (profile photos)
-│   └── cloudfashion.sql, migration_002…036.sql  # Legacy base schema + history
+│   └── nutsvally_setup.sql            # ⭐ Fresh install: creates nutsvally_db + all tables + NutValley catalogue
 ├── backend/                           # PHP API (no Composer)
 │   ├── index.php / routes.php         # Front controller + all routes
 │   ├── .env.example                   # Copy to .env
@@ -186,11 +185,10 @@ Beadsboutique/
 > Prerequisites: XAMPP (Apache + PHP 8.1+), MySQL 8 (or MariaDB), and Node.js 18+.
 
 ### 1. Database
-Open **`database/beadsboutique_setup.sql`** in MySQL Workbench and run the whole script (⚡). It creates `beadsboutique_db` with every table and the jewellery seed data.
+Open **`database/nutsvally_setup.sql`** in MySQL Workbench and run the whole script (⚡). It creates `nutsvally_db` with every table and the NutValley seed data (8 categories, 16 products with 250 g / 500 g / 1 kg packs, banners, coupons, settings).
 
 - The script uses `CREATE DATABASE IF NOT EXISTS`, so an empty schema created earlier by Workbench is fine.
 - It **fails instead of overwriting** if the tables already exist.
-- If you are upgrading an older database instead, apply `migration_037_rebrand_beadsboutique.sql`, then `migration_038_user_avatar.sql`.
 
 > The XAMPP `mysql.exe` client can't log in to MySQL 8 accounts that use `caching_sha2_password`. Use Workbench, or a PHP PDO script, instead.
 
@@ -199,7 +197,7 @@ Open **`database/beadsboutique_setup.sql`** in MySQL Workbench and run the whole
 cd backend
 cp .env.example .env     # then fill in DB_PASS, JWT_SECRET, SMTP, Cloudinary, Razorpay
 ```
-- API base: `http://localhost/Beadsboutique/backend`
+- API base: `http://localhost/NutsVally/backend`
 - Check it works: open `…/backend/api/categories`. It should return `{"success":true,...}`.
 - Restart Apache after editing `.env`.
 
@@ -213,7 +211,7 @@ npm run dev              # http://localhost:5190 (strictPort)
 ```
 `frontend/.env`:
 ```
-VITE_API_URL=http://localhost/Beadsboutique/backend
+VITE_API_URL=http://localhost/NutsVally/backend
 ```
 
 ### Demo logins
@@ -226,11 +224,11 @@ Create accounts through the app, then promote an admin account by setting `role 
 | Variable | Purpose |
 |---|---|
 | `APP_ENV`, `APP_URL`, `FRONTEND_URL` | Environment and URLs. `FRONTEND_URL` must be the storefront's real address (`http://localhost:5190` in dev, your domain in production): it is used for email buttons, password-reset links and the share-page redirect. |
-| `DB_HOST/PORT/NAME/USER/PASS` | MySQL connection (`DB_NAME=beadsboutique_db`) |
+| `DB_HOST/PORT/NAME/USER/PASS` | MySQL connection (`DB_NAME=nutsvally_db`) |
 | `JWT_SECRET`, `JWT_TTL` | Token signing. **Use a long random secret.** |
 | `MAIL_DRIVER` | `smtp` sends real email; `log` writes to `backend/storage/mail.log` |
-| `SMTP_HOST/PORT/USER/PASS` | Gmail: `smtp.gmail.com:587`, user `beadsboutiquejewellery@gmail.com`, and a 16-character **App Password** (spaces are stripped automatically) |
-| `MAIL_FROM`, `MAIL_FROM_NAME` | Sender: `beadsboutiquejewellery@gmail.com` / `Beadsboutique` |
+| `SMTP_HOST/PORT/USER/PASS` | Gmail: `smtp.gmail.com:587`, user `nutsvally@gmail.com`, and a 16-character **App Password** (spaces are stripped automatically) |
+| `MAIL_FROM`, `MAIL_FROM_NAME` | Sender: `nutsvally@gmail.com` / `NutValley` |
 | `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` | **Every** image upload (products, categories, banners, avatars, logo) is sent to Cloudinary using signed uploads. If the keys are missing, images are stored inline. |
 | `RAZORPAY_KEY_ID/KEY_SECRET` | Online payments (`rzp_test_…` for sandbox, `rzp_live_…` for real money). Copy **both** from the same "Regenerate key" popup — a mismatched pair returns 401 *Authentication failed*. Empty keys = demo test mode (decided by the server only). Wrong keys never create fake paid orders: checkout refuses and hides online payment. See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md). |
 | `CRON_KEY` | Secret for `GET /api/cron/run?key=…`, which runs the mail-automation drip from Task Scheduler / cron |
@@ -248,7 +246,7 @@ This uploads any base64 images still stored in the database (categories, product
 
 ## 🗄️ Database
 
-**28 tables** in `beadsboutique_db`, grouped by area:
+**28 tables** in `nutsvally_db`, grouped by area:
 
 | Area | Tables |
 |---|---|
@@ -634,7 +632,7 @@ erDiagram
     }
 ```
 
-> `product_variants` and `products.specifications` come from the CloudFashion base schema. The jewellery store doesn't use them (one price, MRP and stock per product), but they are kept so old carts and orders stay valid.
+> `product_variants` and `products.specifications` come from the CloudFashion base schema. NutValley uses `product_variants` for pack sizes (250 g / 500 g / 1 kg), each with its own price and MRP.
 
 ---
 
@@ -715,18 +713,18 @@ See [RAZORPAY_SETUP.md](RAZORPAY_SETUP.md) for payment-gateway setup and [backen
 ## 📝 Changelog
 
 ### 2026-10-21 — Storefront polish
-- **Branding:** store name / page title changed to "Beadsboutique Jewellery"; hero eyebrow is now "Handcrafted Jewellery".
-- **Landing page:** 16:9 hero cards with copy below, always auto-advancing; one-screen hero on desktop; adaptive landing header (hero / dark / light); centred layouts for short best-seller, new-arrival and featured lists; radial-gradient glows instead of blurred boxes (no hard edges); "necklace" category link fixed.
-- **Collection page:** product cards and search suggestions fall back to the category banner when a product has no photo; price inputs no longer cut off; new **Categories** filter under Price Range with counts and active highlight.
+- **Branding:** store name / page title changed to "NutValley"; hero eyebrow is now "Premium Nuts & Dry Fruits".
+- **Landing page:** 16:9 hero cards with copy below, always auto-advancing; one-screen hero on desktop; adaptive landing header (hero / dark / light); centred layouts for short best-seller, new-arrival and featured lists; radial-gradient glows instead of blurred boxes (no hard edges).
+- **Collection page:** product cards and search suggestions fall back to a category placeholder when a product has no photo; price inputs no longer cut off; new **Categories** filter under Price Range with counts and active highlight.
 - **Header:** search suggestions and profile menu are now solid (were see-through over product cards).
 - **WhatsApp button:** simplified to a clean green circle.
 - **Footer:** redesigned — contact details, two-column category links, pill newsletter field, split bottom bar clear of the WhatsApp button.
 - **About page:** rebuilt with hero, story, promise cards, collections grid and CTA; copy corrected to the real product range.
 
 ### Earlier
-Everything described in **Features** above: storefront, checkout (Razorpay + COD), orders and emails, admin panel, bulk CSV, Cloudinary images, billing / POS, and the rebrand from the CloudFashion base (`migration_037`).
+Everything described in **Features** above: storefront, checkout (Razorpay + COD), orders and emails, admin panel, bulk CSV, Cloudinary images, billing / POS, and the NutValley rebrand.
 
 ---
 
 ## 📄 License
-MIT. Built for **Beads Boutique Jewellery**.
+MIT. Built for **NutValley**.

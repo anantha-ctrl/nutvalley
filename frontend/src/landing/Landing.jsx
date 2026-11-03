@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import api from '../api/client';
 import useLenis from './lib/useLenis';
-import { IMG } from './lib/content';
 
 import LandingNav from './components/LandingNav';
 import Hero from './components/Hero';
@@ -47,15 +46,15 @@ export default function Landing() {
         <BrandIntro image={content?.intro_image} stats={content?.stats} />
         <CategorySection />
 
-        {/* Necklaces — featured collection block */}
+        {/* Cashews — featured collection block */}
         <CollectionShowcase
           index="01"
-          eyebrow="Necklaces"
-          title={['Layered.', 'Luminous.']}
-          description="Handstrung beads, chokers and statement strands — pieces made to layer and to love."
-          image={content?.men_image || IMG.men}
-          to="/category/necklace"
-          cta="Explore Necklaces"
+          eyebrow="Cashews"
+          title={['Creamy.', 'Crunchy.']}
+          description="Whole W240 cashews — plain, roasted and lightly salted, packed fresh for everyday snacking."
+          image={content?.men_image}
+          to="/category/cashews"
+          cta="Explore Cashews"
         />
 
         <BestSeller />

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Search, Download, Upload, FileSpreadsheet, Eye, EyeOff, QrCode, X, Printer } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Download, Upload, FileSpreadsheet, Eye, EyeOff, QrCode, X, Printer, Filter } from 'lucide-react';
 import QRCode from 'qrcode';
 import toast from 'react-hot-toast';
 import api from '../api/client';
@@ -8,9 +8,12 @@ import { inr } from '../utils/format';
 import { exportCsv, exportExcel, exportPdf, parseCsv } from '../utils/csv';
 import { Spinner, Checkbox } from '../components/ui';
 
+const NO_FILTERS = { category: '', status: '', stock: '', tag: '' };
+
 export default function AdminProducts() {
   const [products, setProducts] = useState(null);
   const [q, setQ] = useState('');
+  const [filters, setFilters] = useState(NO_FILTERS);
   const [selected, setSelected] = useState([]);
   const [importing, setImporting] = useState(false);
   const [qrProduct, setQrProduct] = useState(null); // product whose QR label is open
@@ -25,32 +28,42 @@ export default function AdminProducts() {
   }, []);
 
   // ---- CSV bulk upload ----
-  // Same fields as the Add Product form. Rows whose name matches an existing
-  // product update it on upload, so this sheet can also be used to bulk-edit.
+  // Same fields as the Add Product form (incl. pack-size variants). Rows whose name
+  // matches an existing product update it on upload, so the sheet also bulk-edits.
   const TEMPLATE_COLS = [
-    'name', 'category', 'price', 'mrp', 'stock', 'low_stock_alert', 'brand', 'description',
-    'images', 'active', 'featured', 'trending', 'returnable', 'free_shipping', 'shipping_fee',
+    'name', 'category', 'variants', 'price', 'mrp', 'stock', 'low_stock_alert', 'brand', 'description',
+    'specifications', 'images', 'active', 'featured', 'trending', 'returnable', 'free_shipping', 'shipping_fee',
   ];
-  const downloadTemplate = () =>
-    exportCsv('beadsboutique-products-template', [
+  const downloadTemplate = () => {
+    exportCsv('nutvalley-products-template', [
       {
-        name: 'Rose Quartz Beaded Bracelet', category: 'Bracelets', price: '499', mrp: '699', stock: '25', low_stock_alert: '5',
-        brand: 'Beadsboutique', description: 'Handcrafted stretch bracelet with 8 mm rose quartz beads.',
-        images: 'https://your-site.com/images/rose-quartz-1.jpg | https://your-site.com/images/rose-quartz-2.jpg',
+        // With variants, price / mrp / stock are filled from the packs (cheapest price, total stock).
+        name: 'California Almonds', category: 'Almonds',
+        variants: '250 g = 299 / 399 / 20 | 500 g = 549 / 699 / 15 | 1 kg = 999 / 1299 / 10',
+        price: '', mrp: '', stock: '', low_stock_alert: '5',
+        brand: 'NutValley', description: 'Premium crunchy California almonds, packed fresh.',
+        specifications: 'Origin: California | Shelf life: 6 months | Storage: Cool & dry place',
+        images: 'https://your-site.com/images/almonds-1.jpg | https://your-site.com/images/almonds-2.jpg',
         active: 'yes', featured: 'yes', trending: 'no', returnable: 'yes', free_shipping: 'yes', shipping_fee: '',
       },
       {
-        name: 'Pearl Drop Earrings', category: 'Earrings', price: '399', mrp: '599', stock: '40', low_stock_alert: '5',
-        brand: 'Beadsboutique', description: 'A single glass pearl on a gold-tone stud.',
-        images: 'https://your-site.com/images/pearl-drop.jpg',
+        name: 'Medjool Dates', category: 'Dates',
+        variants: '500 g · Box = 499 / 649 / 30 | 1 kg · Gift Box = 949 / 1199 / 12',
+        price: '', mrp: '', stock: '', low_stock_alert: '5',
+        brand: 'NutValley', description: 'Soft, caramel-sweet Medjool dates.',
+        specifications: 'Origin: Jordan',
+        images: 'https://your-site.com/images/medjool.jpg',
         active: 'yes', featured: 'no', trending: 'yes', returnable: 'no', free_shipping: 'no', shipping_fee: '49',
       },
       {
-        name: 'Boho Seed Bead Anklet', category: 'Anklets', price: '349', mrp: '', stock: '30', low_stock_alert: '',
-        brand: '', description: '', images: '',
+        // No variants: a single price / mrp / stock.
+        name: 'Chia Seeds 250g', category: 'Seeds', variants: '', price: '349', mrp: '399', stock: '30', low_stock_alert: '',
+        brand: '', description: '', specifications: '', images: '',
         active: '', featured: '', trending: '', returnable: '', free_shipping: '', shipping_fee: '',
       },
     ], TEMPLATE_COLS);
+    toast('Variants: "size = price / mrp / stock", separate packs with "|". Leave price/mrp/stock empty when variants are filled.', { icon: '📄', duration: 8000 });
+  };
 
   const onFilePicked = async (e) => {
     const file = e.target.files?.[0];
@@ -101,12 +114,31 @@ export default function AdminProducts() {
   };
 
   if (!products) return <Spinner />;
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))].sort();
+  const isFreeShip = (p) => Number(p.is_free_shipping ?? (p.shipping_fee > 0 ? 0 : 1)) === 1;
+  const stockState = (p) => (Number(p.stock) <= 0 ? 'out' : Number(p.stock) <= Number(p.low_stock_alert ?? 5) ? 'low' : 'in');
+  const filtered = products.filter((p) => {
+    const term = q.trim().toLowerCase();
+    if (term && !`${p.name} ${p.brand || ''} ${p.category || ''}`.toLowerCase().includes(term)) return false;
+    if (filters.category && p.category !== filters.category) return false;
+    if (filters.status === 'active' && !Number(p.is_active)) return false;
+    if (filters.status === 'hidden' && Number(p.is_active)) return false;
+    if (filters.stock && stockState(p) !== filters.stock) return false;
+    if (filters.tag === 'featured' && !Number(p.is_featured)) return false;
+    if (filters.tag === 'trending' && !Number(p.is_trending)) return false;
+    if (filters.tag === 'free_ship' && !isFreeShip(p)) return false;
+    if (filters.tag === 'paid_ship' && isFreeShip(p)) return false;
+    if (filters.tag === 'returnable' && !Number(p.is_returnable)) return false;
+    if (filters.tag === 'no_return' && Number(p.is_returnable)) return false;
+    return true;
+  });
+  const filterCount = Object.values(filters).filter(Boolean).length;
+  const setFilter = (key) => (e) => { setFilters((f) => ({ ...f, [key]: e.target.value })); setSelected([]); };
   const allSelected = filtered.length > 0 && filtered.every((p) => selected.includes(p.id));
   const toggleAll = () => setSelected(allSelected ? [] : filtered.map((p) => p.id));
   const toggleOne = (id) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
-  const exportRows = () => products.map((p) => ({
+  const exportRows = () => filtered.map((p) => ({ // exports what the filters show
       id: p.id, name: p.name, brand: p.brand, category: p.category,
       price: p.price, mrp: p.mrp, stock: p.stock, sold: p.sold_count, active: p.is_active ? 'yes' : 'no',
       returnable: Number(p.is_returnable) ? 'yes' : 'no',
@@ -154,7 +186,7 @@ export default function AdminProducts() {
           .label{text-align:center;border:1px solid #ddd;border-radius:10px;padding:12px;page-break-inside:avoid;width:280px}
           img{width:150px;height:150px}
           .name{font-weight:700;font-size:12px;margin:6px 0 2px;line-height:1.2}
-          .price{color:#8f4f3c;font-weight:700;font-size:13px}
+          .price{color:#9c7414;font-weight:700;font-size:13px}
           .slug{color:#999;font-size:9px;margin-top:3px;word-break:break-all}
           @media print{@page{margin:10mm}}
         </style></head><body onload="window.print()">
@@ -204,6 +236,37 @@ export default function AdminProducts() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input className="input !py-2 pl-9 text-sm" placeholder="Search products…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <div className="flex items-center gap-1.5 text-sm text-gray-400"><Filter size={15} /> Filter</div>
+        <select className="input !w-auto !py-2 text-sm" value={filters.category} onChange={setFilter('category')} aria-label="Category">
+          <option value="">All categories</option>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select className="input !w-auto !py-2 text-sm" value={filters.status} onChange={setFilter('status')} aria-label="Status">
+          <option value="">Any status</option>
+          <option value="active">Active</option>
+          <option value="hidden">Hidden</option>
+        </select>
+        <select className="input !w-auto !py-2 text-sm" value={filters.stock} onChange={setFilter('stock')} aria-label="Stock">
+          <option value="">Any stock</option>
+          <option value="in">In stock</option>
+          <option value="low">Low stock</option>
+          <option value="out">Out of stock</option>
+        </select>
+        <select className="input !w-auto !py-2 text-sm" value={filters.tag} onChange={setFilter('tag')} aria-label="More filters">
+          <option value="">More…</option>
+          <option value="featured">Featured</option>
+          <option value="trending">Trending</option>
+          <option value="free_ship">Free shipping</option>
+          <option value="paid_ship">Paid shipping</option>
+          <option value="returnable">Returnable</option>
+          <option value="no_return">No return</option>
+        </select>
+        {(filterCount > 0 || q) && (
+          <button onClick={() => { setFilters(NO_FILTERS); setQ(''); }} className="flex items-center gap-1 text-sm text-gray-400 hover:text-gold">
+            <X size={14} /> Clear
+          </button>
+        )}
+        <span className="ml-auto text-sm text-gray-400">{filtered.length} of {products.length} products</span>
       </div>
 
       {/* Bulk action bar */}
@@ -306,7 +369,7 @@ function QrLabelModal({ product, onClose }) {
         .label{text-align:center;border:1px solid #ddd;border-radius:10px;padding:12px;page-break-inside:avoid;width:280px}
         img{width:${n === 1 ? 200 : 150}px;height:${n === 1 ? 200 : 150}px}
         .name{font-weight:700;font-size:${n === 1 ? 15 : 12}px;margin:6px 0 2px;line-height:1.2}
-        .price{color:#8f4f3c;font-weight:700;font-size:${n === 1 ? 16 : 13}px}
+        .price{color:#9c7414;font-weight:700;font-size:${n === 1 ? 16 : 13}px}
         .slug{color:#999;font-size:${n === 1 ? 10 : 9}px;margin-top:3px;word-break:break-all}
         @media print{@page{margin:10mm}}
       </style></head><body onload="window.print()">

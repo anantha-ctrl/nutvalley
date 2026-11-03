@@ -31,7 +31,7 @@ class Mailer
         $port = (int) env('SMTP_PORT', 587);
         $user = env('SMTP_USER');
         $pass = preg_replace('/\s+/', '', (string) env('SMTP_PASS')); // Gmail shows app passwords with spaces
-        $from = env('MAIL_FROM', $user ?: 'no-reply@beadsboutiquejewellery.com');
+        $from = env('MAIL_FROM', $user ?: 'no-reply@nutsvally.com');
         $fromName = env('MAIL_FROM_NAME', self::brand());
 
         if (!$user || !$pass) {
@@ -65,12 +65,12 @@ class Mailer
         };
 
         if ($read() !== 220) return $fail('greeting');
-        if ($cmd("EHLO beadsboutique") !== 250) return $fail('ehlo');
+        if ($cmd("EHLO NutValley") !== 250) return $fail('ehlo');
         if ($cmd("STARTTLS") !== 220) return $fail('starttls');
         if (!stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT)) {
             return $fail('tls');
         }
-        if ($cmd("EHLO beadsboutique") !== 250) return $fail('ehlo2');
+        if ($cmd("EHLO NutValley") !== 250) return $fail('ehlo2');
         if ($cmd("AUTH LOGIN") !== 334) return $fail('auth');
         if ($cmd(base64_encode($user)) !== 334) return $fail('user');
         if ($cmd(base64_encode($pass)) !== 235) return $fail('pass (check the App Password)');
@@ -136,7 +136,7 @@ class Mailer
 
     public static function brand(): string
     {
-        return (string) Setting::get('store_name', 'Beadsboutique');
+        return (string) Setting::get('store_name', 'NutValley');
     }
 
     public static function otpTemplate(string $name, string $otp): string
@@ -145,18 +145,18 @@ class Mailer
         return self::shell("
             <p style='margin:0 0 12px'>Hi " . $e($name) . ",</p>
             <p style='margin:0'>Your verification code is:</p>
-            <div style='font-size:34px;letter-spacing:10px;font-weight:700;color:#b8745a;margin:18px 0'>" . $e($otp) . "</div>
-            <p style='color:#7a5a5f;margin:0'>This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>");
+            <div style='font-size:34px;letter-spacing:10px;font-weight:700;color:#c9971c;margin:18px 0'>" . $e($otp) . "</div>
+            <p style='color:#5f6b52;margin:0'>This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>");
     }
 
-    // ── Design system for every email: blush page, white card, wine-maroon header ──
+    // ── Design system for every email: cream page, white card, forest green header ──
     // Inline styles + tables only, so it renders the same in Gmail, Outlook and phones.
 
-    private const C_INK = '#3a0d14';   // wine maroon (brand)
-    private const C_GOLD = '#b8745a';  // rose gold accent
-    private const C_BG = '#fbf4f2';    // blush page
-    private const C_LINE = '#eedfdc';  // hairlines
-    private const C_MUTED = '#7a5a5f'; // secondary text
+    private const C_INK = '#1a4d23';   // forest green (brand)
+    private const C_GOLD = '#c9971c';  // logo gold accent
+    private const C_BG = '#fbf6ea';    // cream page
+    private const C_LINE = '#ece2c6';  // hairlines
+    private const C_MUTED = '#5f6b52'; // secondary text
 
     /** Shared shell for transactional emails. */
     private static function shell(string $inner, string $preheader = ''): string
@@ -164,9 +164,14 @@ class Mailer
         $e = fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
         $brand = $e(self::brand());
         $logo = (string) Setting::get('store_logo', '');
+        // No uploaded logo -> the bundled one on the live site (mail clients can't reach localhost).
+        $front = rtrim((string) env('FRONTEND_URL', ''), '/');
+        if (!preg_match('#^https?://#i', $logo) && preg_match('#^https://#i', $front) && !preg_match('#localhost|127\.0\.0\.1#', $front)) {
+            $logo = $front . '/Nut_Valley_Logo.png';
+        }
         // Email clients block data: images — only use a hosted logo.
         $head = preg_match('#^https?://#i', $logo)
-            ? "<img src='" . $e($logo) . "' alt='$brand' height='44' style='height:44px;max-width:200px;border:0;display:block;margin:0 auto;background:#fff;border-radius:8px;padding:4px 8px'>"
+            ? "<img src='" . $e($logo) . "' alt='$brand' height='64' style='height:64px;max-width:220px;border:0;display:block;margin:0 auto;background:" . self::C_BG . ";border-radius:10px;padding:4px 8px'>"
             : "<span style='font-family:Georgia,serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.5px'>$brand</span>";
 
         $phone = trim((string) Setting::get('store_contact_phone', ''));
@@ -188,7 +193,7 @@ class Mailer
     <tr><td style='padding:28px 28px 8px'>$inner</td></tr>
     <tr><td style='padding:20px 28px 26px;border-top:1px solid " . self::C_LINE . ";text-align:center;font-size:12px;color:" . self::C_MUTED . "'>
       " . ($help ? 'Need help? ' . implode(' &nbsp;·&nbsp; ', $help) . '<br>' : '') . "
-      <a href='$store' style='color:" . self::C_MUTED . ";text-decoration:none'>$brand</a> · Handcrafted beaded jewellery
+      <a href='$store' style='color:" . self::C_MUTED . ";text-decoration:none'>$brand</a> · Premium nuts &amp; dry fruits
     </td></tr>
   </table>
 </td></tr></table></body></html>";
@@ -336,7 +341,7 @@ class Mailer
         $copy = [
             'placed'     => ['Order confirmed 🎉', "Order $num confirmed", "Thank you for shopping with us, $name! We've received your order and our artisans are getting it ready."],
             'processing' => ['We\'re preparing your order', "Order $num is being prepared", "Good news, $name — your order is being prepared with care."],
-            'packed'     => ['Your order is packed 📦', "Order $num is packed", "Your jewellery is packed and ready to be handed to our delivery partner, $name."],
+            'packed'     => ['Your order is packed 📦', "Order $num is packed", "Your nuts &amp; dry fruits are packed and ready to be handed to our delivery partner, $name."],
             'shipped'    => ['Your order is on its way 🚚', "Order $num has shipped", "Exciting news, $name! Your order has left our studio and is on its way to you."],
             'delivered'  => ['Delivered — enjoy! ✨', "Order $num delivered", "Your order has been delivered, $name. We hope you love wearing it as much as we loved making it!"],
             'cancelled'  => ['Your order was cancelled', "Order $num cancelled", "Your order $num has been cancelled, $name."],
@@ -457,15 +462,15 @@ class Mailer
     public static function returnStatusTemplate(string $name, string $orderNumber, string $status, ?string $note = null): string
     {
         $labels = [
-            'approved' => "has been <b style='color:#b8745a'>approved</b>. Please ship the item back as instructed.",
+            'approved' => "has been <b style='color:#c9971c'>approved</b>. Please ship the item back as instructed.",
             'rejected' => "could not be approved.",
             'refunded' => "has been <b style='color:#22c55e'>refunded</b> &#10003;. The amount reflects in 5&ndash;7 business days.",
         ];
         $line = $labels[$status] ?? "status was updated to <b>$status</b>.";
-        $noteHtml = $note ? "<p style='margin-top:14px;padding:12px 16px;background:#fbf4f2;border-radius:10px;color:#3a0d14'>Note from our team: $note</p>" : '';
+        $noteHtml = $note ? "<p style='margin-top:14px;padding:12px 16px;background:#fbf6ea;border-radius:10px;color:#1a4d23'>Note from our team: $note</p>" : '';
         return self::shell("
             <p>Hi $name,</p>
-            <p>Your return request for order <b style='color:#b8745a'>$orderNumber</b> $line</p>
+            <p>Your return request for order <b style='color:#c9971c'>$orderNumber</b> $line</p>
             $noteHtml");
     }
 
@@ -475,24 +480,24 @@ class Mailer
         $amt = '₹' . number_format($total, 2);
         $ph = $phone ? "<br>Phone: <b>$phone</b>" : '';
         return self::shell("
-            <p style='font-size:15px'><b style='color:#b8745a'>New UPI payment awaiting verification</b></p>
-            <p style='margin-top:14px;padding:12px 16px;background:#fbf4f2;border-radius:10px'>
-                Order: <b style='color:#b8745a'>$orderNumber</b><br>
+            <p style='font-size:15px'><b style='color:#c9971c'>New UPI payment awaiting verification</b></p>
+            <p style='margin-top:14px;padding:12px 16px;background:#fbf6ea;border-radius:10px'>
+                Order: <b style='color:#c9971c'>$orderNumber</b><br>
                 Customer: <b>$customer</b>$ph<br>
                 Amount: <b>$amt</b><br>
-                Txn / Ref id: <b style='color:#b8745a'>$txnId</b>
+                Txn / Ref id: <b style='color:#c9971c'>$txnId</b>
             </p>
-            <p style='color:#7a5a5f'>Open <b>Admin &rarr; Orders</b> to review the screenshot and approve or reject the payment.</p>");
+            <p style='color:#5f6b52'>Open <b>Admin &rarr; Orders</b> to review the screenshot and approve or reject the payment.</p>");
     }
 
     /** Sent to the customer when their UPI payment could not be verified. */
     public static function upiRejectedTemplate(string $name, string $orderNumber, ?string $note = null): string
     {
-        $noteHtml = $note ? "<p style='margin-top:14px;padding:12px 16px;background:#fbf4f2;border-radius:10px;color:#3a0d14'>Note from our team: $note</p>" : '';
+        $noteHtml = $note ? "<p style='margin-top:14px;padding:12px 16px;background:#fbf6ea;border-radius:10px;color:#1a4d23'>Note from our team: $note</p>" : '';
         return self::shell("
             <p>Hi $name,</p>
-            <p>We couldn't verify the payment for your order <b style='color:#b8745a'>$orderNumber</b>.</p>
-            <p style='color:#7a5a5f'>If you've already paid, please reply with the correct transaction id / screenshot and we'll sort it out. Otherwise you can place the order again.</p>
+            <p>We couldn't verify the payment for your order <b style='color:#c9971c'>$orderNumber</b>.</p>
+            <p style='color:#5f6b52'>If you've already paid, please reply with the correct transaction id / screenshot and we'll sort it out. Otherwise you can place the order again.</p>
             $noteHtml");
     }
 
@@ -519,17 +524,17 @@ class Mailer
         $url = self::storeUrl();
         return self::shell("
             <p style='font-size:16px'>Welcome to the family, <b>$name</b> ✨</p>
-            <p>Your first order has arrived — thank you for choosing our handcrafted jewellery.
-            Every piece is made and checked with care, so you can wear it with confidence.</p>
-            <p style='color:#7a5a5f'>We hope you love wearing it as much as we loved making it.</p>
+            <p>Your first order has arrived — thank you for choosing our premium nuts &amp; dry fruits.
+            Every pack is sorted, sealed and checked with care, so you can snack with confidence.</p>
+            <p style='color:#5f6b52'>We hope you enjoy every bite as much as we enjoyed packing it.</p>
             " . self::button('Explore the store', $url));
     }
 
-    /** Jewellery care guide — sent the day the order is delivered. */
+    /** Storage & freshness guide — sent the day the order is delivered. */
     public static function feedingGuideTemplate(string $name, array $productNames = []): string
     {
         $items = $productNames
-            ? '<ul style="color:#3a0d14;margin:8px 0 0;padding-left:18px">'
+            ? '<ul style="color:#1a4d23;margin:8px 0 0;padding-left:18px">'
               . implode('', array_map(fn($n) => "<li style='margin:4px 0'>" . htmlspecialchars($n) . '</li>', $productNames))
               . '</ul>'
             : '';
@@ -537,14 +542,14 @@ class Mailer
             <p>Hi $name,</p>
             <p>Your order has arrived 🎉 Here's how to get the best from it:</p>
             $items
-            <div style='margin-top:14px;padding:14px 16px;background:#fbf4f2;border-radius:10px;color:#3a0d14'>
-                <b style='color:#b8745a'>Jewellery care tips</b>
-                <p style='margin:8px 0 0'>• Put your jewellery on last — after perfume, lotion and make-up.<br>
-                • Remove it before bathing, swimming, sleeping or exercising.<br>
-                • Wipe gently with a soft, dry cloth after wearing.<br>
-                • Store each piece separately in a dry pouch or box.</p>
+            <div style='margin-top:14px;padding:14px 16px;background:#fbf6ea;border-radius:10px;color:#1a4d23'>
+                <b style='color:#c9971c'>Storage &amp; freshness tips</b>
+                <p style='margin:8px 0 0'>• Store in an air-tight container in a cool, dry place.<br>
+                • Keep away from direct sunlight and moisture.<br>
+                • Refrigerate after opening to keep nuts crunchy for longer.<br>
+                • Always use a dry spoon — moisture spoils dry fruits.</p>
             </div>
-            <p style='color:#7a5a5f'>Size guides and material details are on each product page.</p>");
+            <p style='color:#5f6b52'>Pack sizes and nutrition details are on each product page.</p>");
     }
 
     /** 2-week check-in — sent 14 days after delivery. */
@@ -552,9 +557,9 @@ class Mailer
     {
         return self::shell("
             <p>Hi $name,</p>
-            <p>It's been a couple of weeks — how are you enjoying your new pieces? 💎</p>
+            <p>It's been a couple of weeks — how are you enjoying your nuts &amp; dry fruits? 🥜</p>
             <p>If anything isn't quite right, just reply to this email and our team will help you sort it out.</p>
-            <p style='color:#7a5a5f'>We're always here to help.</p>");
+            <p style='color:#5f6b52'>We're always here to help.</p>");
     }
 
     /** Review request (carries the referral code) — sent 20 days after delivery. */
@@ -562,14 +567,14 @@ class Mailer
     {
         $url = self::storeUrl();
         $ref = $referralCode ? "
-            <div style='margin-top:18px;padding:14px 16px;background:#fbf4f2;border-radius:10px'>
-                <b style='color:#b8745a'>Share the love & earn</b>
-                <p style='margin:8px 0 0;color:#3a0d14'>Refer a friend with your code
-                <b style='color:#b8745a;letter-spacing:2px'>$referralCode</b> — they get a warm welcome and you get rewarded.</p>
+            <div style='margin-top:18px;padding:14px 16px;background:#fbf6ea;border-radius:10px'>
+                <b style='color:#c9971c'>Share the love & earn</b>
+                <p style='margin:8px 0 0;color:#1a4d23'>Refer a friend with your code
+                <b style='color:#c9971c;letter-spacing:2px'>$referralCode</b> — they get a warm welcome and you get rewarded.</p>
             </div>" : '';
         return self::shell("
             <p>Hi $name,</p>
-            <p>Loving your recent order? A quick <b>review</b> helps other jewellery lovers shop with confidence —
+            <p>Loving your recent order? A quick <b>review</b> helps other healthy snackers shop with confidence —
             and only takes a minute ⭐</p>
             " . self::button('Write a review', $url . '/orders') . "
             $ref");
@@ -582,8 +587,8 @@ class Mailer
         return self::shell("
             <p>Hi $name,</p>
             <p>Ready for something new? ✨ Fresh beadwork lands every month — now's a great time to
-            <b>add a new piece</b> to your collection.</p>
-            <p style='color:#7a5a5f'>Reorder favourites in one tap from your order history.</p>
+            <b>stock up</b> on your favourites.</p>
+            <p style='color:#5f6b52'>Reorder favourites in one tap from your order history.</p>
             " . self::button('Reorder now', $url . '/orders'));
     }
 
@@ -594,6 +599,6 @@ class Mailer
             <p style='margin:0 0 12px'>Hi " . $e($name) . ",</p>
             <p style='margin:0 0 6px'>Click below to reset your password (valid for 30 minutes):</p>
             <div style='text-align:center;margin:14px 0 18px'>" . self::button('Reset Password', $link) . "</div>
-            <p style='color:#7a5a5f;font-size:13px;margin:0'>If you didn't ask for this, you can safely ignore this email.</p>");
+            <p style='color:#5f6b52;font-size:13px;margin:0'>If you didn't ask for this, you can safely ignore this email.</p>");
     }
 }

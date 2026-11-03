@@ -64,7 +64,7 @@ class Router
 
 // Resolve the path relative to the /backend mount point.
 // The base is derived from SCRIPT_NAME so it works under any folder/alias
-// (e.g. /Beadsboutique/backend, /CloudFashion/backend) with no code change.
+// (e.g. /NutsVally/backend, /CloudFashion/backend) with no code change.
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 if ($base !== '' && str_starts_with($uri, $base)) {

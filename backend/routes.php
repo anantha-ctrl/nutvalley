@@ -132,6 +132,7 @@ $router->get('/api/admin/products',                  'AdminProductController@ind
 $router->post('/api/admin/products',                 'AdminProductController@store');
 $router->post('/api/admin/products/bulk',            'AdminProductController@bulk');
 $router->post('/api/admin/products/import',          'AdminProductController@import');
+$router->get('/api/admin/products/{id}',             'AdminProductController@show');
 $router->put('/api/admin/products/{id}',             'AdminProductController@update');
 $router->post('/api/admin/products/{id}',            'AdminProductController@update');
 $router->delete('/api/admin/products/{id}',          'AdminProductController@destroy');

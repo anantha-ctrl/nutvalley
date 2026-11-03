@@ -104,7 +104,15 @@ class AuthController
             'name'     => 'required|min:2|max:120',
             'email'    => 'required|email',
             'password' => 'required|min:6|confirmed',
+            'phone'    => 'required',
         ]);
+        // Normalise to a 10-digit Indian mobile (accepts spaces, dashes, +91 / 0 prefix).
+        $phone = preg_replace('/\D+/', '', (string) ($data['phone'] ?? ''));
+        $phone = preg_replace('/^(91|0)(?=\d{10}$)/', '', $phone);
+        if (!$v->fails() && !preg_match('/^[6-9]\d{9}$/', $phone)) {
+            Response::error('Validation failed', 422, ['phone' => ['Enter a valid 10-digit mobile number']]);
+        }
+        $data['phone'] = $phone;
         if ($v->fails()) {
             Response::error('Validation failed', 422, $v->errors());
         }
@@ -117,12 +125,12 @@ class AuthController
                 Response::error('Email already registered', 409);
             }
             $userId = (int) $row['id'];
-            $db->prepare('UPDATE users SET name=?, password_hash=? WHERE id=?')
-               ->execute([$data['name'], password_hash($data['password'], PASSWORD_BCRYPT), $userId]);
+            $db->prepare('UPDATE users SET name=?, phone=?, password_hash=? WHERE id=?')
+               ->execute([$data['name'], $data['phone'], password_hash($data['password'], PASSWORD_BCRYPT), $userId]);
         } else {
             $stmt = $db->prepare('INSERT INTO users (name, email, phone, password_hash, referral_code) VALUES (?,?,?,?,?)');
             $stmt->execute([
-                $data['name'], $data['email'], $data['phone'] ?? null,
+                $data['name'], $data['email'], $data['phone'],
                 password_hash($data['password'], PASSWORD_BCRYPT),
                 LoyaltyController::makeReferralCode($db),
             ]);
@@ -288,7 +296,7 @@ class AuthController
                     Response::error('Profile photo is too large — please use an image under 2 MB.', 422);
                 }
                 try {
-                    $up = Cloudinary::upload($avatar, 'beadsboutique/avatars');
+                    $up = Cloudinary::upload($avatar, 'nutsvally/avatars');
                     if ($up && !empty($up['url'])) {
                         $avatar = $up['url'];
                     }

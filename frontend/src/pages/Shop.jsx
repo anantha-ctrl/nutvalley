@@ -35,7 +35,7 @@ export default function Shop() {
   const onSale = !!params.get('on_sale'); // "Shop the Sale" entry point
 
   // Categories drive the sidebar filter and resolve the real category name from
-  // its slug (slugs can carry a suffix, e.g. "jewellery-3c4a").
+  // its slug (slugs can carry a suffix, e.g. "almonds-3c4a").
   useEffect(() => {
     api.get('/api/categories')
       .then((r) => setCategories(r.data.data || []))
@@ -153,7 +153,7 @@ export default function Shop() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
-      <Seo title={title} description={`Shop ${title} at Beadsboutique. ${pagination?.total ?? ''} curated jewellery pieces with filters for size, colour, brand and price.`} />
+      <Seo title={title} description={`Shop ${title} at NutValley. ${pagination?.total ?? ''} premium nuts & dry fruits with filters for pack size, brand and price.`} />
       <SectionTitle eyebrow={eyebrow} title={title} />
 
       <div className="mb-6 flex items-center justify-between gap-3">
@@ -196,7 +196,7 @@ export default function Shop() {
       {showFilters && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowFilters(false)} />
-          <div className="absolute right-0 top-0 h-full w-80 overflow-y-auto bg-white p-6 dark:bg-ink">
+          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] overflow-y-auto bg-white p-6 dark:bg-ink">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-lg font-semibold">Filters</h3>
               <button onClick={() => setShowFilters(false)}><X /></button>

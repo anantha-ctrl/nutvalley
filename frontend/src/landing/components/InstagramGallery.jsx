@@ -5,9 +5,10 @@ import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import Reveal from '../lib/Reveal';
 import api from '../../api/client';
 import { inr } from '../../utils/format';
+import NutVisual from '../three/NutVisual';
 
 const IMG_BASE = api.defaults.baseURL || '';
-const PLACEHOLDER = 'https://placehold.co/600x800/f6e6e4/3a0d14?text=Beadsboutique';
+const PLACEHOLDER = 'https://placehold.co/600x800/fbf6ea/1a4d23?text=NutValley';
 const imgSrc = (p) =>
   !p.image ? PLACEHOLDER
     : String(p.image).startsWith('data:') ? `${IMG_BASE}/api/products/${p.id}/thumb` : p.image;
@@ -48,7 +49,7 @@ export default function InstagramGallery() {
   if (items.length < 4) return null;
 
   return (
-    <section className="bg-luxe-bg py-24 dark:bg-ink sm:py-28">
+    <section className="bg-luxe-bg py-12 dark:bg-ink sm:py-16">
       <div className="mx-auto max-w-[1400px] px-6 sm:px-10 lg:px-12">
         <div className="mb-12 flex flex-wrap items-end justify-between gap-4 text-center sm:text-left">
           <div className="w-full sm:w-auto">
@@ -60,11 +61,11 @@ export default function InstagramGallery() {
           <Reveal delay={0.1}>
             <div className="flex items-center gap-3">
               <button onClick={() => scrollByCards(-1)} aria-label="Previous"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-luxe-ink/15 text-luxe-ink transition hover:border-luxe-gold hover:bg-luxe-gold dark:border-white/20 dark:text-white">
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-luxe-ink/15 text-luxe-ink transition hover:border-luxe-ink hover:bg-luxe-cream hover:text-luxe-ink dark:border-white/20 dark:text-white">
                 <ChevronLeft size={18} />
               </button>
               <button onClick={() => scrollByCards(1)} aria-label="Next"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-luxe-ink/15 text-luxe-ink transition hover:border-luxe-gold hover:bg-luxe-gold dark:border-white/20 dark:text-white">
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-luxe-ink/15 text-luxe-ink transition hover:border-luxe-ink hover:bg-luxe-cream hover:text-luxe-ink dark:border-white/20 dark:text-white">
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -85,14 +86,14 @@ export default function InstagramGallery() {
               to={`/product/${p.slug}`}
               className="group relative block aspect-[4/5] w-[62%] shrink-0 snap-start overflow-hidden rounded-luxe sm:w-[38%] lg:w-[24%] xl:w-[19%]"
             >
-              <img src={imgSrc(p)} alt={p.name} loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+              <NutVisual src={p.image && imgSrc(p)} label={`${p.category_slug || ''} ${p.name}`} alt={p.name}
+                className="h-full w-full" imgClassName="object-cover transition-transform duration-700 group-hover:scale-110" />
               <div className="absolute inset-0 bg-gradient-to-t from-luxe-ink/80 via-transparent to-transparent opacity-90" />
               <div className="absolute inset-x-0 bottom-0 p-4">
                 <p className="line-clamp-1 text-sm font-semibold text-white">{p.name}</p>
                 <p className="text-xs font-semibold text-luxe-gold">{inr(p.price)}</p>
               </div>
-              <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white opacity-0 backdrop-blur-md transition group-hover:bg-luxe-gold group-hover:text-luxe-ink group-hover:opacity-100">
+              <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white opacity-0 backdrop-blur-md transition group-hover:bg-luxe-cream group-hover:text-luxe-ink group-hover:opacity-100">
                 <ShoppingBag size={16} />
               </div>
             </Link>

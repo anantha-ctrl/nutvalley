@@ -17,7 +17,7 @@ class AdminBannerController
         }
         $url = $data['image_url'];
         if (str_starts_with($url, 'data:image')) {
-            $up = Cloudinary::upload($url, 'beadsboutique/banners');
+            $up = Cloudinary::upload($url, 'nutsvally/banners');
             if ($up) { $url = $up['url']; }
         }
         db()->prepare(
@@ -37,7 +37,7 @@ class AdminBannerController
         $data = Request::body();
         $url = $data['image_url'] ?? '';
         if (str_starts_with($url, 'data:image')) {
-            $up = Cloudinary::upload($url, 'beadsboutique/banners');
+            $up = Cloudinary::upload($url, 'nutsvally/banners');
             if ($up) { $url = $up['url']; }
         }
         db()->prepare(

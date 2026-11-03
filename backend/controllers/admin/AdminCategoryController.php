@@ -40,7 +40,7 @@ class AdminCategoryController
         db()->prepare('INSERT INTO categories (name, slug, parent_id, image_url, description, is_active) VALUES (?,?,?,?,?,?)')
             ->execute([
                 $data['name'], $slug, $parentId,
-                Cloudinary::store($data['image_url'] ?? '', 'beadsboutique/categories') ?: null, $data['description'] ?? null,
+                Cloudinary::store($data['image_url'] ?? '', 'nutsvally/categories') ?: null, $data['description'] ?? null,
                 isset($data['is_active']) ? (int) $data['is_active'] : 1,
             ]);
         Response::success(['id' => (int) db()->lastInsertId(), 'slug' => $slug], 'Category created', 201);
@@ -55,7 +55,7 @@ class AdminCategoryController
         $parentId = !empty($data['parent_id']) && (int) $data['parent_id'] !== $id ? (int) $data['parent_id'] : null;
         db()->prepare('UPDATE categories SET name=?, parent_id=?, image_url=?, description=?, is_active=? WHERE id=?')
             ->execute([
-                $data['name'], $parentId, Cloudinary::store($data['image_url'] ?? '', 'beadsboutique/categories') ?: null, $data['description'] ?? null,
+                $data['name'], $parentId, Cloudinary::store($data['image_url'] ?? '', 'nutsvally/categories') ?: null, $data['description'] ?? null,
                 isset($data['is_active']) ? (int) $data['is_active'] : 1, $id,
             ]);
         Response::success(null, 'Category updated');

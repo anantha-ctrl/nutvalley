@@ -1,19 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'framer-motion';
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight, ChevronLeft, ChevronRight, Sparkles, Leaf, Truck, ShieldCheck } from 'lucide-react';
 import { MaskReveal } from '../lib/Reveal';
 import MagneticButton from '../lib/MagneticButton';
 import { IMG } from '../lib/content';
 import api from '../../api/client';
+import { isRealImage } from '../three/NutVisual';
 
 const EASE = [0.22, 1, 0.36, 1];
 
 const DEFAULTS = {
-  hero_eyebrow: 'Handcrafted Jewellery',
-  hero_title: 'Handcrafted beads, made to shine.',
-  hero_accent: 'Jewellery made for you.',
-  hero_subtitle: 'Necklaces, bracelets, earrings, rings & anklets — delivered across India.',
-  hero_cta: 'Shop Jewellery',
+  hero_eyebrow: 'Premium Nuts & Dry Fruits',
+  hero_title: 'Nature\'s finest, packed fresh.',
+  hero_accent: 'Healthy snacking made easy.',
+  hero_subtitle: 'Almonds, cashews, pistachios, walnuts, dates & more — delivered across India.',
+  hero_cta: 'Shop Now',
   hero_cta_link: '/shop',
 };
 
@@ -34,15 +36,15 @@ export default function Hero({ content }) {
     return () => { active = false; clearInterval(timer); };
   }, []);
 
-  // Banners (Admin → Banners) win: any active banner → the banner carousel.
-  // The Hero background image (Admin → Settings) is shown ONLY when there are no banners.
-  // While banners are still loading, show a plain backdrop so the hero image never
-  // flashes before the banners appear.
-  if (slides === null) {
-    return <section data-nav="hero" aria-hidden="true" className="h-[510px] bg-[#fbf4f2] sm:h-[100svh] sm:min-h-[560px]" />;
-  }
-  if (slides.length > 0) return <HeroCarousel slides={slides} />;
-  return <EditorialHero c={c} />;
+  // The photo hero always opens the page. Admin banners that carry a real
+  // photo (seed placeholders are skipped) follow it as a 3D offers carousel.
+  const offers = (slides || []).filter((b) => isRealImage(b.image_url));
+  return (
+    <>
+      <PhotoHero c={c} />
+      {offers.length > 0 && <HeroCarousel slides={offers} />}
+    </>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -77,10 +79,10 @@ function HeroCarousel({ slides }) {
     // so nothing needs a scroll. Top padding clears the fixed 72px header.
     <section
       data-nav="hero"
-      className="relative flex flex-col items-center overflow-hidden bg-[#fbf4f2] pb-12 pt-28 dark:bg-[#fbf4f2] sm:h-[100svh] sm:min-h-[560px] sm:pb-5 sm:pt-[84px]"
+      className="relative flex flex-col items-center overflow-hidden bg-[#fbf6ea] pb-12 pt-28 dark:bg-[#fbf6ea] sm:h-[100svh] sm:min-h-[560px] sm:pb-5 sm:pt-[84px]"
     >
       {/* ambient glow (radial gradient — a blurred box shows hard edges in some browsers) */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(196,154,108,0.16),transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(201,151,28,0.16),transparent_60%)]" />
 
       {/* 3D stage. Banners are 16:9 artwork with the logo baked in, so the card keeps
           that ratio (nothing cropped) and the copy sits BELOW it, never on top.
@@ -147,13 +149,13 @@ function HeroCarousel({ slides }) {
           <>
             <button
               onClick={() => go(i - 1)} aria-label="Previous slide"
-              className="absolute left-2 top-1/2 z-30 -translate-y-1/2 rounded-full border border-luxe-ink/10 bg-white/80 p-2.5 text-luxe-ink shadow-luxe-sm backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold sm:left-6"
+              className="absolute left-2 top-1/2 z-30 -translate-y-1/2 rounded-full border border-luxe-ink/10 bg-white/80 p-2.5 text-luxe-ink shadow-luxe-sm backdrop-blur-sm transition hover:border-luxe-ink/30 hover:bg-[#fcf3e4] sm:left-6"
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={() => go(i + 1)} aria-label="Next slide"
-              className="absolute right-2 top-1/2 z-30 -translate-y-1/2 rounded-full border border-luxe-ink/10 bg-white/80 p-2.5 text-luxe-ink shadow-luxe-sm backdrop-blur-sm transition hover:border-luxe-gold hover:bg-luxe-gold sm:right-6"
+              className="absolute right-2 top-1/2 z-30 -translate-y-1/2 rounded-full border border-luxe-ink/10 bg-white/80 p-2.5 text-luxe-ink shadow-luxe-sm backdrop-blur-sm transition hover:border-luxe-ink/30 hover:bg-[#fcf3e4] sm:right-6"
             >
               <ChevronRight size={20} />
             </button>
@@ -207,7 +209,7 @@ function SlideCopy({ b, active }) {
         <motion.div {...anim(0.24)} className="shrink-0">
           <MagneticButton
             to={b.cta_link}
-            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-white shadow-luxe transition hover:bg-luxe-gold hover:text-ink"
+            className="group inline-flex items-center gap-2 rounded-full border border-ink bg-ink px-7 py-3.5 text-sm font-semibold text-white shadow-luxe transition hover:border-luxe-ink hover:bg-[#fcf3e4] hover:text-luxe-ink"
           >
             {b.cta_label}
             <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
@@ -219,94 +221,175 @@ function SlideCopy({ b, active }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Editorial single hero — fallback when no banners are configured     */
+/* Photo hero — one screen tall: headline left, arch showcase right   */
 /* ------------------------------------------------------------------ */
-function EditorialHero({ c }) {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '22%']);
-  const imgScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
-  const textY = useTransform(scrollYProgress, [0, 1], ['0%', '-40%']);
-  const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+const PERKS = [
+  [Leaf, 'Handpicked & fresh'],
+  [ShieldCheck, 'No preservatives'],
+  [Truck, 'Delivered across India'],
+];
 
-  const [mx, setMx] = useState(0);
-  const [my, setMy] = useState(0);
-  const sx = useSpring(mx, { stiffness: 60, damping: 20 });
-  const sy = useSpring(my, { stiffness: 60, damping: 20 });
-  const onMove = (e) => {
-    const { innerWidth: w, innerHeight: h } = window;
-    setMx((e.clientX / w - 0.5) * 40);
-    setMy((e.clientY / h - 0.5) * 40);
-  };
+function PhotoHero({ c }) {
+  const reduce = useReducedMotion();
+  const [tiles, setTiles] = useState([]);
+
+  // Real category photos (Admin → Categories) feed the showcase; placeholders are skipped.
+  useEffect(() => {
+    api.get('/api/categories')
+      .then((r) => setTiles(
+        (r.data.data || [])
+          .filter((cat) => isRealImage(cat.image_url))
+          .slice(0, 6)
+          .map((cat) => ({ name: cat.name, img: cat.image_url, to: `/category/${cat.slug}` })),
+      ))
+      .catch(() => setTiles([]));
+  }, []);
+
+  const rise = (delay) => ({
+    initial: reduce ? false : { opacity: 0, y: 24 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay, duration: 0.8, ease: EASE },
+  });
 
   return (
-    <section ref={ref} data-nav="hero-dark" onMouseMove={onMove} className="relative h-[100svh] min-h-[620px] overflow-hidden bg-[#fbf4f2] dark:bg-[#fbf4f2]">
-      <motion.div style={{ y: imgY, scale: imgScale }} className="absolute inset-0">
-        <img src={c.hero_image || IMG.hero} alt="" className="h-full w-full object-cover object-[center_30%]" />
-      </motion.div>
+    // lg+: exactly one screen (top padding clears the fixed 72px header).
+    <section data-nav="hero" className="relative overflow-hidden bg-luxe-bg dark:bg-luxe-bg lg:h-[100svh] lg:min-h-[620px]">
+      <div className="pointer-events-none absolute -bottom-48 -left-40 h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle,rgba(26,77,35,0.10),transparent_65%)]" />
 
-      <motion.div style={{ x: sx, y: sy }} className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[8%] top-[22%] h-72 w-72 animate-blob rounded-full bg-luxe-gold/25 blur-[90px]" />
-        <div className="absolute bottom-[12%] right-[14%] h-80 w-80 animate-blob rounded-full bg-luxe-bronze/25 blur-[100px] [animation-delay:-6s]" />
-      </motion.div>
-
-      <motion.div style={{ y: textY, opacity: fade }} className="relative z-10 mx-auto flex h-full max-w-[1400px] items-center px-6 sm:px-10 lg:px-12">
-        <div className="max-w-3xl pt-16 text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)]">
-          <motion.p
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}
-            className="mb-6 flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-luxe-gold"
-          >
-            <Sparkles size={15} /> {c.hero_eyebrow}
+      <div className="relative mx-auto grid h-full max-w-[1400px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-5 pb-14 pt-28 sm:px-10 lg:grid-cols-[1.1fr_1fr] lg:gap-12 lg:px-12 lg:pb-8 lg:pt-[88px]">
+        {/* Copy */}
+        <div className="min-w-0 text-luxe-ink">
+          <motion.p {...rise(0.05)} className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-luxe-gold/30 bg-white/70 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] sm:text-[11px] sm:tracking-[0.3em] text-luxe-bronze">
+            <Sparkles size={14} className="text-luxe-gold" /> {c.hero_eyebrow}
           </motion.p>
 
-          <h1 className="font-display text-[13vw] font-bold leading-[0.92] sm:text-7xl lg:text-8xl">
-            <MaskReveal lines={[c.hero_title]} delay={0.25} />
-            <span className="mt-2 block bg-gold-sheen bg-clip-text text-transparent">
-              <MaskReveal lines={[c.hero_accent]} delay={0.5} />
+          <h1 className="font-display text-[10vw] font-bold leading-[1.05] sm:text-5xl xl:text-[3.6rem]">
+            <MaskReveal lines={[c.hero_title]} delay={0.15} />
+            <span className="mt-1 block bg-gold-sheen bg-clip-text text-transparent">
+              <MaskReveal lines={[c.hero_accent]} delay={0.35} />
             </span>
           </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1, duration: 0.8 }}
-            className="mt-8 max-w-md text-base text-white/75 sm:text-lg"
-          >
+          <motion.p {...rise(0.6)} className="mt-5 max-w-md text-base text-luxe-ink/65 sm:text-lg">
             {c.hero_subtitle}
           </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.15, duration: 0.8, ease: EASE }}
-            className="mt-10 flex flex-wrap items-center gap-4"
-          >
+          <motion.div {...rise(0.75)} className="mt-7 flex flex-wrap items-center gap-4">
             <MagneticButton
               to={c.hero_cta_link || '/shop'}
-              className="group inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-semibold text-ink shadow-luxe transition hover:bg-luxe-gold"
+              className="group inline-flex items-center gap-2 rounded-full border border-luxe-ink bg-luxe-ink px-8 py-4 text-sm font-semibold text-white shadow-luxe transition hover:bg-[#fcf3e4] hover:text-luxe-ink"
             >
               {c.hero_cta}
               <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
             </MagneticButton>
             <MagneticButton
-              to="/category/necklace"
+              to="/category/cashews"
               strength={0.25}
-              className="rounded-full border border-white/40 px-8 py-4 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10"
+              className="rounded-full border border-luxe-ink/15 bg-white/60 px-8 py-4 text-sm font-semibold text-luxe-ink transition hover:border-luxe-ink hover:bg-[#fcf3e4]"
             >
-              Shop Necklaces
+              Shop Cashews
             </MagneticButton>
           </motion.div>
-        </div>
-      </motion.div>
 
-      <motion.div style={{ opacity: fade }} className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-white/70">
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.3em]">Scroll</span>
-          <span className="relative flex h-10 w-6 justify-center rounded-full border border-white/40">
-            <motion.span
-              className="mt-1.5 h-1.5 w-1.5 rounded-full bg-white"
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          <motion.ul {...rise(0.9)} className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm text-luxe-ink/70">
+            {PERKS.map(([Icon, label]) => (
+              <li key={label} className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-luxe-gold/15 text-luxe-gold"><Icon size={15} /></span>
+                {label}
+              </li>
+            ))}
+          </motion.ul>
+        </div>
+
+        <HeroShowcase tiles={tiles} reduce={reduce} />
+      </div>
+    </section>
+  );
+}
+
+function HeroShowcase({ tiles, reduce }) {
+  const [active, setActive] = useState(0);
+  const n = tiles.length;
+
+  // Auto-rotate; keyed on `active` so a thumbnail click restarts the timer.
+  useEffect(() => {
+    if (n < 2) return;
+    const id = setTimeout(() => setActive((p) => (p + 1) % n), 3800);
+    return () => clearTimeout(id);
+  }, [active, n]);
+
+  useEffect(() => { if (active >= n) setActive(0); }, [n]);
+
+  const cur = tiles[active];
+
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.25, duration: 1, ease: EASE }}
+      className="relative mx-auto flex w-full items-center justify-center py-6"
+    >
+      {/* Gold disc + dashed ring behind the arch */}
+      <div className="absolute aspect-square h-[min(52svh,470px)] max-h-[calc(100vw-4rem)] rounded-full bg-[radial-gradient(circle_at_35%_30%,#f3d98a,#c9971c_70%)] opacity-90" />
+      <div className="absolute aspect-square h-[min(62svh,560px)] max-h-[calc(100vw-2.5rem)] rounded-full border border-dashed border-luxe-gold/50" />
+
+      {/* Arch frame — height-driven so it always fits the screen */}
+      <div className="relative aspect-[4/5] h-[min(62svh,540px)] max-h-[calc((100vw-2.5rem)*1.25)] overflow-hidden rounded-b-[36px] rounded-t-full border-[6px] border-white bg-[#1a4d23] shadow-luxe">
+        <AnimatePresence initial={false}>
+          {cur && (
+            <motion.img
+              key={cur.img}
+              src={cur.img}
+              alt={cur.name}
+              className="absolute inset-0 h-full w-full object-cover"
+              initial={{ opacity: 0, scale: 1.08 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1, ease: EASE }}
             />
-          </span>
+          )}
+        </AnimatePresence>
+        {cur && (
+          <Link
+            to={cur.to}
+            className="absolute inset-x-4 bottom-4 flex items-center justify-between rounded-2xl bg-white/90 px-4 py-3 text-luxe-ink backdrop-blur transition hover:bg-white"
+          >
+            <span className="font-display text-lg font-bold">{cur.name}</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-luxe-gold text-ink"><ArrowRight size={16} /></span>
+          </Link>
+        )}
+      </div>
+
+      {/* Round thumbnails along the right edge */}
+      {n > 1 && (
+        <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 flex-col gap-3 sm:flex">
+          {tiles.map((t, i) => (
+            <button
+              key={t.to}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={`Show ${t.name}`}
+              className={`h-14 w-14 overflow-hidden rounded-full border-[3px] shadow-luxe-sm transition-all duration-300 ${i === active ? 'scale-110 border-luxe-gold' : 'border-white opacity-70 hover:opacity-100'}`}
+            >
+              <img src={t.img} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Floating trust badge */}
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1, duration: 0.8, ease: EASE }}
+        className="absolute left-0 top-[18%] flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-luxe ring-1 ring-luxe-ink/5"
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-luxe-gold/15 text-luxe-gold"><Leaf size={18} /></span>
+        <div className="leading-tight">
+          <p className="font-display text-base font-bold text-luxe-ink">100% Natural</p>
+          <p className="text-xs text-luxe-ink/55">Sorted by hand</p>
         </div>
       </motion.div>
-    </section>
+    </motion.div>
   );
 }

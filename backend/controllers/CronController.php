@@ -3,7 +3,7 @@
  * Public cron entry point for scheduled jobs. Protected by a shared key so it
  * can be hit by Windows Task Scheduler / a real cron without an admin login:
  *
- *   curl "http://localhost/Beadsboutique/backend/api/cron/run?key=YOUR_CRON_KEY"
+ *   curl "http://localhost/NutsVally/backend/api/cron/run?key=YOUR_CRON_KEY"
  *
  * Set CRON_KEY in backend/.env. If it's empty, the endpoint is disabled
  * (use the admin "Run now" button instead).

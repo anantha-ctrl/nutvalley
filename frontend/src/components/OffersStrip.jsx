@@ -42,7 +42,7 @@ export default function OffersStrip() {
                 {Number(o.min_order) > 0 ? `On orders above ${inr(o.min_order)}` : 'On all orders'}
               </p>
               <button onClick={() => copy(o.code)}
-                className="mt-2 flex items-center gap-1.5 rounded-lg border border-gold/40 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-gold/10">
+                className="mt-2 flex items-center gap-1.5 rounded-lg border border-gold/40 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-luxe-cream">
                 {copied === o.code ? <Check size={12} /> : <Copy size={12} />} {o.code}
               </button>
               {o.expires_at && (

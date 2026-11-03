@@ -15,7 +15,7 @@ const fmt = (d) => (d ? new Date(d.replace(' ', 'T')).toLocaleString('en-IN', { 
 const TYPE_LABEL = {
   order_confirmation: 'Order confirmation',
   welcome: 'Welcome',
-  feeding_guide: 'Jewellery care guide',
+  feeding_guide: 'Storage & freshness guide',
   check_in: 'Check-in',
   review_request: 'Review request',
   reorder_reminder: 'Reorder reminder',

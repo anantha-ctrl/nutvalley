@@ -13,7 +13,7 @@ export default function WhatsAppButton() {
   const { whatsapp, name } = useStore();
   if (!whatsapp) return null; // hidden until a number is configured in admin settings
 
-  const text = encodeURIComponent(`Hi ${name || 'Beadsboutique'}! I have a question about my order.`);
+  const text = encodeURIComponent(`Hi ${name || 'NutValley'}! I have a question about my order.`);
   return (
     <a
       href={`https://wa.me/${whatsapp}?text=${text}`}

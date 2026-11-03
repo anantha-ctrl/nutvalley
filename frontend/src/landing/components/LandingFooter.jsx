@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Instagram, Facebook, Twitter, ArrowUpRight } from 'lucide-react';
+import { Instagram, Facebook, Twitter, ArrowUpRight, Mail, Phone, MapPin, Leaf, ShieldCheck, Truck } from 'lucide-react';
 import Logo from '../../components/Logo';
 import { useStore } from '../../context/StoreContext';
 
@@ -16,58 +16,103 @@ const COLS = [
   ['Policies', [['Privacy', '/privacy'], ['Terms', '/terms'], ['Returns & Refund', '/returns'], ['Shipping', '/shipping']]],
 ];
 
+const TRUST = [
+  [Leaf, 'Handpicked & fresh'],
+  [ShieldCheck, 'No preservatives'],
+  [Truck, 'Delivered across India'],
+];
+
 export default function LandingFooter() {
   const store = useStore();
-  // Live social links from Admin → Settings (only the ones that are filled show).
+  // Live social links + contact details from Admin → Settings (only filled ones show).
   const SOCIALS = [
     [Instagram, store.instagram],
     [Facebook, store.facebook],
     [Twitter, store.twitter],
     [WhatsApp, store.whatsapp ? `https://wa.me/${store.whatsapp}` : ''],
   ].filter(([, href]) => href);
+  const CONTACT = [
+    [Phone, store.phone, store.phone && `tel:${store.phone.replace(/\s/g, '')}`],
+    [Mail, store.email, store.email && `mailto:${store.email}`],
+    [MapPin, store.address, null],
+  ].filter(([, v]) => v);
 
   return (
-    <footer data-nav="dark" className="bg-luxe-ink text-white">
-      <div className="mx-auto max-w-[1400px] px-6 py-20 sm:px-10 lg:px-12">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          {/* Brand */}
-          <div>
-            <Logo white className="h-12" />
-            <p className="mt-6 max-w-xs text-sm leading-relaxed text-white/60">
-              Handcrafted beaded jewellery, made in India for every occasion.
-            </p>
-            <div className="mt-6 flex gap-3">
-              {SOCIALS.map(([Icon, href], i) => (
-                <a key={i} href={href} target="_blank" rel="noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 transition hover:border-luxe-gold hover:bg-luxe-gold hover:text-luxe-ink">
-                  <Icon size={17} />
-                </a>
-              ))}
+    // Cream strip behind so the footer's rounded top reads as a separate panel.
+    <div className="bg-luxe-bg dark:bg-ink">
+      <footer data-nav="dark" className="relative overflow-hidden rounded-t-[32px] bg-luxe-ink text-white sm:rounded-t-[48px]">
+        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-luxe-gold/15 blur-3xl" />
+
+        {/* trust strip */}
+        <div className="relative border-b border-white/10">
+          <ul className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-10 gap-y-3 px-6 py-6 text-sm text-white/75 sm:px-10 lg:justify-between lg:px-12">
+            {TRUST.map(([Icon, label]) => (
+              <li key={label} className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-luxe-gold/15 text-luxe-gold"><Icon size={15} /></span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="relative mx-auto max-w-[1400px] px-6 pb-8 pt-14 sm:px-10 lg:px-12">
+          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+            {/* Brand + contact */}
+            <div className="sm:col-span-2 lg:col-span-1">
+              <Logo white className="h-20" />
+              <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">
+                Premium nuts & dry fruits, packed fresh in India for every occasion.
+              </p>
+              {CONTACT.length > 0 && (
+                <ul className="mt-6 space-y-2.5 text-sm text-white/70">
+                  {CONTACT.map(([Icon, value, href]) => (
+                    <li key={value} className="flex items-start gap-2.5">
+                      <Icon size={16} className="mt-0.5 shrink-0 text-luxe-gold" />
+                      {href ? <a href={href} className="transition hover:text-white">{value}</a> : <span>{value}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {SOCIALS.length > 0 && (
+                <div className="mt-6 flex gap-3">
+                  {SOCIALS.map(([Icon, href], i) => (
+                    <a key={i} href={href} target="_blank" rel="noreferrer"
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 transition hover:border-luxe-cream hover:bg-luxe-cream hover:text-luxe-ink">
+                      <Icon size={17} />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {COLS.map(([title, links]) => (
+              <div key={title}>
+                <h4 className="text-xs font-semibold uppercase tracking-[0.3em] text-luxe-gold">{title}</h4>
+                <ul className="mt-5 space-y-3">
+                  {links.map(([label, to]) => (
+                    <li key={label}>
+                      <Link to={to} className="group inline-flex items-center gap-1 text-sm text-white/70 transition hover:text-white">
+                        {label}
+                        <ArrowUpRight size={13} className="opacity-0 transition group-hover:opacity-100" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
-          {COLS.map(([title, links]) => (
-            <div key={title}>
-              <h4 className="text-xs uppercase tracking-[0.3em] text-luxe-gold">{title}</h4>
-              <ul className="mt-5 space-y-3">
-                {links.map(([label, to]) => (
-                  <li key={label}>
-                    <Link to={to} className="group inline-flex items-center gap-1 text-sm text-white/70 transition hover:text-white">
-                      {label}
-                      <ArrowUpRight size={13} className="opacity-0 transition group-hover:opacity-100" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+          {/* oversized wordmark */}
+          <p aria-hidden className="pointer-events-none mt-14 select-none text-center font-display text-[18vw] font-bold leading-none text-luxe-cream lg:text-[200px]">
+            NutValley
+          </p>
 
-        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-white/40 sm:flex-row">
-          <p>© {new Date().getFullYear()} Beadsboutique Jewellery. All rights reserved.</p>
-          <p>Designed and Developed By <a href="https://cloudhawk.in/">CloudHawk</a>.</p>
+          <div className="mt-6 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-7 text-sm text-white/45 sm:flex-row">
+            <p>© {new Date().getFullYear()} NutValley. All rights reserved.</p>
+            <p>Designed and Developed By <a href="https://cloudhawk.in/" className="text-luxe-gold transition hover:text-white">CloudHawk</a>.</p>
+          </div>
         </div>
-      </div>
-    </footer>
+      </footer>
+    </div>
   );
 }

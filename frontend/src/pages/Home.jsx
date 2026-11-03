@@ -10,12 +10,12 @@ import RecentlyViewed from '../components/RecentlyViewed';
 import OffersStrip from '../components/OffersStrip';
 
 const SLIDES = [
-  { title: 'Handstrung Necklaces', subtitle: 'Layered & Luminous', cta: 'Shop Necklaces', to: '/category/necklace',
-    img: 'https://placehold.co/1600x900/f6e6e4/3a0d14?text=Necklaces' },
-  { title: 'Stack & Shine', subtitle: 'Beaded Bracelets', cta: 'Shop Bracelets', to: '/category/bracelet',
-    img: 'https://placehold.co/1600x900/f6e6e4/3a0d14?text=Bracelets' },
-  { title: 'Fresh Beadwork', subtitle: 'New Arrivals', cta: 'Shop New In', to: '/shop?sort=newest',
-    img: 'https://placehold.co/1600x900/f6e6e4/3a0d14?text=New+Arrivals' },
+  { title: 'Premium Almonds', subtitle: 'Rich & Crunchy', cta: 'Shop Almonds', to: '/category/almonds',
+    img: 'https://placehold.co/1600x900/fbf6ea/1a4d23?text=Almonds' },
+  { title: 'Whole Cashews', subtitle: 'Creamy & Fresh', cta: 'Shop Cashews', to: '/category/cashews',
+    img: 'https://placehold.co/1600x900/fbf6ea/1a4d23?text=Cashews' },
+  { title: 'Freshly Packed', subtitle: 'New Arrivals', cta: 'Shop New In', to: '/shop?sort=newest',
+    img: 'https://placehold.co/1600x900/fbf6ea/1a4d23?text=New+Arrivals' },
 ];
 
 export default function Home() {
@@ -63,7 +63,7 @@ export default function Home() {
               <Sparkles size={16} /> {slides[slide].subtitle}
             </p>
             <h1 className="font-display text-5xl font-bold leading-tight sm:text-7xl">{slides[slide].title}</h1>
-            <p className="mt-4 text-gray-300">Handcrafted beaded jewellery for every day and every occasion.</p>
+            <p className="mt-4 text-gray-300">Premium nuts & dry fruits, packed fresh for every day and every occasion.</p>
             <Link to={slides[slide].to} className="btn-gold mt-8">{slides[slide].cta} <ArrowRight size={18} /></Link>
           </motion.div>
         </div>
@@ -82,7 +82,7 @@ export default function Home() {
             [Truck, 'Free Shipping', 'On orders over ₹1999'],
             [RefreshCw, 'Easy Returns', '7-day return policy'],
             [ShieldCheck, 'Secure Payments', 'Razorpay protected'],
-            [Sparkles, 'Premium Quality', 'Handcrafted pieces'],
+            [Sparkles, 'Premium Quality', 'Handpicked & fresh'],
           ].map(([Icon, t, s]) => (
             <div key={t} className="flex items-center gap-3">
               <div className="rounded-full bg-gold/10 p-3 text-gold"><Icon size={22} /></div>
@@ -123,7 +123,7 @@ export default function Home() {
           <div className="relative z-10 max-w-lg">
             <p className="text-sm uppercase tracking-[0.3em] text-gold">Limited Offer</p>
             <h3 className="mt-2 font-display text-4xl font-bold">Up to 40% Off</h3>
-            <p className="mt-2 text-gray-300">Save big on selected jewellery. Use code <b className="text-gold">BEADS500</b>.</p>
+            <p className="mt-2 text-gray-300">Save big on selected nuts & dry fruits. Use code <b className="text-gold">NUTS500</b>.</p>
             <Link to="/shop?on_sale=1&sort=discount" className="btn-gold mt-6">Shop the Sale <ArrowRight size={18} /></Link>
           </div>
           <Sparkles className="absolute -right-6 -top-6 h-48 w-48 text-gold/10" />
@@ -148,11 +148,11 @@ export default function Home() {
 }
 
 const CAT_IMG = [
-  'https://placehold.co/500x600/f6e6e4/3a0d14?text=Necklaces',
-  'https://placehold.co/500x600/f6e6e4/3a0d14?text=Bracelets',
-  'https://placehold.co/500x600/f6e6e4/3a0d14?text=Earrings',
-  'https://placehold.co/500x600/f6e6e4/3a0d14?text=Rings',
-  'https://placehold.co/500x600/f6e6e4/3a0d14?text=Anklets',
+  'https://placehold.co/500x600/fbf6ea/1a4d23?text=Almonds',
+  'https://placehold.co/500x600/fbf6ea/1a4d23?text=Cashews',
+  'https://placehold.co/500x600/fbf6ea/1a4d23?text=Pistachios',
+  'https://placehold.co/500x600/fbf6ea/1a4d23?text=Dates',
+  'https://placehold.co/500x600/fbf6ea/1a4d23?text=Seeds',
 ];
 
 function Carousel({ title, eyebrow, products, to }) {
