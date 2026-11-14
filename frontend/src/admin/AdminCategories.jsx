@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { cdnSized } from '../utils/cdn';
 import { Plus, Pencil, Trash2, ImagePlus, X, Link2, EyeOff, Search, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
 import { Spinner, Checkbox } from '../components/ui';
 
-const BLANK = { id: null, name: '', description: '', image_url: '', parent_id: '', is_active: 1 };
+const BLANK = { id: null, name: '', slug: '', description: '', image_url: '', parent_id: '', is_active: 1 };
+const slugify = (v = '') => v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const isImageUrl = (v) => /^https?:\/\/\S+$/i.test(v) || /^data:image\//i.test(v);
 // placehold.co images are seed placeholders, not real photos — show the branded tile instead.
 const hasPhoto = (v) => !!v && !/placehold\.co/i.test(v);
@@ -121,7 +123,7 @@ export default function AdminCategories() {
   };
 
   const edit = (c) => open({
-    id: c.id, name: c.name, description: c.description || '', image_url: c.image_url || '',
+    id: c.id, name: c.name, slug: c.slug || '', description: c.description || '', image_url: c.image_url || '',
     parent_id: c.parent_id || '', is_active: c.is_active != null ? Number(c.is_active) : 1,
   });
 
@@ -171,7 +173,7 @@ export default function AdminCategories() {
               <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-b-xl rounded-t-full border border-black/10 bg-cream dark:border-white/10 dark:bg-white/5">
                 {form.image_url ? (
                   <>
-                    <img src={form.image_url} alt="Category" className="h-full w-full object-cover"
+                    <img src={cdnSized(form.image_url, 600)} alt="Category" className="h-full w-full object-cover"
                       onError={() => toast.error('That image could not be loaded — check the link')} />
                     <button type="button" onClick={() => { setForm({ ...form, image_url: '' }); setUrlInput(''); }}
                       className="absolute bottom-2 right-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-rose-500" aria-label="Remove image">
@@ -200,6 +202,21 @@ export default function AdminCategories() {
                 <label className="mb-1 block text-sm text-gray-400">Name *</label>
                 <input required className="input" placeholder="e.g. Almonds" value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-gray-400">URL slug</label>
+                <div className="flex gap-2">
+                  <div className="flex flex-1 items-center rounded-xl">
+                    <span className="mr-1 text-sm text-gray-400">/category/</span>
+                    <input className="input flex-1" placeholder={slugify(form.name) || 'e.g. dry-fruits-nuts'} value={form.slug}
+                      onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-') })}
+                      onBlur={() => setForm((f) => ({ ...f, slug: slugify(f.slug) }))} />
+                  </div>
+                  <button type="button" onClick={() => setForm({ ...form, slug: slugify(form.name) })}
+                    className="btn-outline !px-4 !py-2 text-sm">From name</button>
+                </div>
+                <p className="mt-1 text-xs text-gray-400">Leave blank to build it from the name. Changing it changes the category's store link.</p>
               </div>
 
               <div>
@@ -271,7 +288,7 @@ export default function AdminCategories() {
               {/* Cover — real photo, or a branded tile when it's only a placeholder */}
               <div className="relative aspect-[16/10] overflow-hidden">
                 {hasPhoto(c.image_url) ? (
-                  <img src={c.image_url} alt={c.name} loading="lazy"
+                  <img src={cdnSized(c.image_url, 600)} alt={c.name} loading="lazy"
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                 ) : (
                   <div className="relative flex h-full w-full flex-col items-center justify-center bg-hero-gradient text-center">

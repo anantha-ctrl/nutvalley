@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cdnSized } from '../utils/cdn';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Copy, Plus, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -258,7 +259,7 @@ export default function AdminProductForm() {
                 dragImg.current = null;
               }}
               className="relative aspect-[3/4] w-24 cursor-grab active:cursor-grabbing">
-              <img src={img.url} className="h-full w-full rounded-lg object-cover" alt="" />
+              <img src={cdnSized(img.url, 300)} className="h-full w-full rounded-lg object-cover" alt="" />
               {img.ok === false && (
                 <span title={`${img.w}×${img.h} — not 3:4, edges will be cropped in the shop`}
                   className="absolute left-1 top-1 rounded bg-amber-500/90 px-1 text-[9px] font-bold text-white">NOT 3:4</span>

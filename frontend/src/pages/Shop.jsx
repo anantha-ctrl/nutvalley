@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X } from 'lucide-react';
 import api from '../api/client';
 import ProductCard from '../components/ProductCard';
-import { Spinner, Empty, SectionTitle } from '../components/ui';
+import { Empty, SectionTitle } from '../components/ui';
 import { Search } from 'lucide-react';
 import Seo from '../components/Seo';
 
@@ -172,10 +172,24 @@ export default function Shop() {
         <aside className="hidden w-60 shrink-0 lg:block">{FilterPanel}</aside>
 
         <div className="flex-1">
-          {loading ? <Spinner /> : items.length ? (
+          {loading && !items.length ? (
+            // Skeleton in the same grid shape — page feels instant, no layout jump.
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="card overflow-hidden">
+                  <div className="aspect-[3/4] animate-pulse bg-black/5 dark:bg-white/5" />
+                  <div className="space-y-3 p-4">
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-black/5 dark:bg-white/5" />
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-black/5 dark:bg-white/5" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-black/5 dark:bg-white/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : items.length ? (
             <>
-              <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-4">
-                {items.map((p) => <ProductCard key={p.id} product={p} />)}
+              <div className={`grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-4 transition-opacity ${loading ? 'opacity-50' : ''}`}>
+                {items.map((p, i) => <ProductCard key={p.id} product={p} priority={i < 4} />)}
               </div>
               {pagination && page < pagination.pages && (
                 <div className="mt-10 flex flex-col items-center gap-2">

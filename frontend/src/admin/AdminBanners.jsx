@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cdnSized } from '../utils/cdn';
 import { Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
@@ -84,7 +85,7 @@ export default function AdminBanners() {
             <label className="btn-outline !py-2 cursor-pointer text-sm"><ImageIcon size={16} /> Upload Image
               <input type="file" accept="image/*" hidden onChange={onFile} />
             </label>
-            {form.image_url && <img src={form.image_url} alt="" className="h-12 w-20 rounded-lg object-cover" />}
+            {form.image_url && <img src={cdnSized(form.image_url, 200)} alt="" className="h-12 w-20 rounded-lg object-cover" />}
           </div>
           <input type="number" className="input" placeholder="Sort order" value={form.sort_order} onChange={(e) => set('sort_order', e.target.value)} />
           <label className="flex items-center gap-2 text-sm">
@@ -101,7 +102,7 @@ export default function AdminBanners() {
         {banners.map((b) => (
           <div key={b.id} className="card overflow-hidden">
             <div className="relative aspect-[16/9]">
-              <img src={b.image_url} alt={b.title} className="h-full w-full object-cover" />
+              <img src={cdnSized(b.image_url, 800)} loading="lazy" alt={b.title} className="h-full w-full object-cover" />
               {!b.is_active && <span className="absolute right-2 top-2 rounded-full bg-gray-900/70 px-2 py-0.5 text-xs text-white">Hidden</span>}
             </div>
             <div className="p-4">

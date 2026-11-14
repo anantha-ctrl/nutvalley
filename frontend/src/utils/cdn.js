@@ -15,6 +15,26 @@ export function cdn(url, width = 1400) {
   return url.replace(UPLOAD, `${UPLOAD}f_auto,q_auto,c_limit,w_${width}/`);
 }
 
+/**
+ * Cloudinary URL resized to exactly `width` — also re-sizes a URL that already
+ * carries our default transform (the API interceptor applies w_1400 to everything).
+ * Use for thumbnails / cards, where 1400px is ~6× more bytes than needed.
+ */
+export function cdnSized(url, width) {
+  if (typeof url !== 'string' || !url.includes('res.cloudinary.com') || !url.includes(UPLOAD)) return url;
+  if (/\/image\/upload\/f_auto,q_auto,c_limit,w_\d+\//.test(url)) {
+    return url.replace(/(\/image\/upload\/f_auto,q_auto,c_limit,)w_\d+\//, `$1w_${width}/`);
+  }
+  if (HAS_TRANSFORM.test(url)) return url; // some other custom transform — leave it
+  return url.replace(UPLOAD, `${UPLOAD}f_auto,q_auto,c_limit,w_${width}/`);
+}
+
+/** srcset string for responsive Cloudinary images ('' for non-Cloudinary URLs). */
+export function cdnSrcSet(url, widths = [320, 480, 640, 800]) {
+  if (typeof url !== 'string' || !url.includes('res.cloudinary.com')) return undefined;
+  return widths.map((w) => `${cdnSized(url, w)} ${w}w`).join(', ');
+}
+
 /** Recursively optimise every Cloudinary image URL inside an API payload. */
 export function optimizeImages(data, depth = 0) {
   if (depth > 8 || data == null) return data;

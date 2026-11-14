@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { cdnSized } from '../utils/cdn';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, Receipt, Printer, X, Ban,
   Calculator, Split, CreditCard, Smartphone, Wallet, User, ScrollText,
@@ -26,7 +27,7 @@ function ThumbImg({ product }) {
   const [err, setErr] = useState(false);
   if (err) return <span className="flex h-full items-center justify-center text-gray-300"><ShoppingCart /></span>;
   return (
-    <img src={product.image || `${IMG_BASE}/api/products/${product.id}/thumb`}
+    <img src={cdnSized(product.image, 200) || `${IMG_BASE}/api/products/${product.id}/thumb`}
       alt={product.name} loading="lazy" onError={() => setErr(true)}
       className="h-full w-full object-cover transition group-hover:scale-105" />
   );

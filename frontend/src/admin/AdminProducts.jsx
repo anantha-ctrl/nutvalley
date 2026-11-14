@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cdnSized } from '../utils/cdn';
 import { Link } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Search, Download, Upload, FileSpreadsheet, Eye, EyeOff, QrCode, X, Printer, Filter } from 'lucide-react';
 import QRCode from 'qrcode';
@@ -295,7 +296,7 @@ export default function AdminProducts() {
                 <td className="p-4"><Checkbox checked={selected.includes(p.id)} onChange={() => toggleOne(p.id)} /></td>
                 <td>
                   <div className="flex items-center gap-3">
-                    <img src={p.image} className="h-12 w-10 rounded-lg object-cover" alt="" />
+                    <img src={cdnSized(p.image, 120)} loading="lazy" className="h-12 w-10 rounded-lg object-cover" alt="" />
                     <div><p className="font-medium">{p.name}</p><p className="text-xs text-gray-400">{p.brand}</p></div>
                   </div>
                 </td>

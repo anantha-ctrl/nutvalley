@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { cdnSized } from '../utils/cdn';
 import { Link } from 'react-router-dom';
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Bar,
@@ -449,7 +450,7 @@ function TopProducts({ products }) {
             <motion.div key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + i * 0.05 }}
               className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-gold/5">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gold/15 text-xs font-bold text-gold">{i + 1}</span>
-              <img src={p.image || 'https://via.placeholder.com/48'} alt="" className="h-11 w-9 rounded-lg object-cover" />
+              <img src={cdnSized(p.image, 120) || 'https://via.placeholder.com/48'} alt="" className="h-11 w-9 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-gray-400">{p.units_sold} sold · {inr(p.revenue)}</p>

@@ -19,3 +19,23 @@ Options -Indexes
 
 # package.json / composer.json etc. are covered by the .json rule above.
 # The React build (frontend/dist) and API (backend/index.php) still work.
+
+# ── React SPA fallback ──
+# React Router handles /category/almonds, /product/x, /admin … in the browser.
+# On refresh the server must return index.html for any path that isn't a
+# real file or folder, otherwise LiteSpeed/Apache answers 404.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Leave the PHP API alone (backend/ has its own front controller)
+    RewriteRule ^backend(/|$) - [L]
+
+    # Real files / folders are served as-is (assets, images, icons…)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else → the SPA entry point
+    RewriteRule ^ index.html [L]
+</IfModule>

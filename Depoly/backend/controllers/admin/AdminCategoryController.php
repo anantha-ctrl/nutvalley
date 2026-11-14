@@ -33,7 +33,7 @@ class AdminCategoryController
         if ($v->fails()) {
             Response::error('Validation failed', 422, $v->errors());
         }
-        $slug = self::uniqueCategorySlug($data['name']);
+        $slug = self::uniqueCategorySlug(trim($data['slug'] ?? '') !== '' ? $data['slug'] : $data['name']);
         // parent_id arrives as '' from the "Top-level (no parent)" option — coerce
         // any empty value to NULL so the BIGINT column doesn't reject it (strict mode).
         $parentId = !empty($data['parent_id']) ? (int) $data['parent_id'] : null;
@@ -53,12 +53,22 @@ class AdminCategoryController
         $id = (int) $p['id'];
         // A category cannot be its own parent.
         $parentId = !empty($data['parent_id']) && (int) $data['parent_id'] !== $id ? (int) $data['parent_id'] : null;
-        db()->prepare('UPDATE categories SET name=?, parent_id=?, image_url=?, description=?, is_active=? WHERE id=?')
+
+        // Slug: keep the current one unless the admin sent a new value (blank → rebuild from the name).
+        if (array_key_exists('slug', $data)) {
+            $slug = self::uniqueCategorySlug(trim((string) $data['slug']) !== '' ? $data['slug'] : $data['name'], $id);
+        } else {
+            $cur = db()->prepare('SELECT slug FROM categories WHERE id=?');
+            $cur->execute([$id]);
+            $slug = $cur->fetchColumn() ?: self::uniqueCategorySlug($data['name'], $id);
+        }
+
+        db()->prepare('UPDATE categories SET name=?, slug=?, parent_id=?, image_url=?, description=?, is_active=? WHERE id=?')
             ->execute([
-                $data['name'], $parentId, Cloudinary::store($data['image_url'] ?? '', 'nutsvally/categories') ?: null, $data['description'] ?? null,
+                $data['name'], $slug, $parentId, Cloudinary::store($data['image_url'] ?? '', 'nutsvally/categories') ?: null, $data['description'] ?? null,
                 isset($data['is_active']) ? (int) $data['is_active'] : 1, $id,
             ]);
-        Response::success(null, 'Category updated');
+        Response::success(['slug' => $slug], 'Category updated');
     }
 
     public function destroy(array $p): void
@@ -89,16 +99,16 @@ class AdminCategoryController
     }
 
     /** Clean, human-readable category slug; adds -2, -3… only on collision. */
-    public static function uniqueCategorySlug(string $name): string
+    public static function uniqueCategorySlug(string $name, int $excludeId = 0): string
     {
         $base = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-')) ?: 'category';
         $slug = $base;
-        $check = db()->prepare('SELECT COUNT(*) FROM categories WHERE slug=?');
+        $check = db()->prepare('SELECT COUNT(*) FROM categories WHERE slug=? AND id<>?');
         $n = 2;
-        $check->execute([$slug]);
+        $check->execute([$slug, $excludeId]);
         while ((int) $check->fetchColumn() > 0) {
             $slug = $base . '-' . $n++;
-            $check->execute([$slug]);
+            $check->execute([$slug, $excludeId]);
         }
         return $slug;
     }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles, Leaf, Truck, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Leaf, Truck, ShieldCheck } from 'lucide-react';
 import { MaskReveal } from '../lib/Reveal';
 import MagneticButton from '../lib/MagneticButton';
 import { IMG } from '../lib/content';
@@ -259,10 +259,6 @@ function PhotoHero({ c }) {
       <div className="relative mx-auto grid h-full max-w-[1400px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-5 pb-14 pt-28 sm:px-10 lg:grid-cols-[1.1fr_1fr] lg:gap-12 lg:px-12 lg:pb-8 lg:pt-[88px]">
         {/* Copy */}
         <div className="min-w-0 text-luxe-ink">
-          <motion.p {...rise(0.05)} className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-luxe-gold/30 bg-white/70 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] sm:text-[11px] sm:tracking-[0.3em] text-luxe-bronze">
-            <Sparkles size={14} className="text-luxe-gold" /> {c.hero_eyebrow}
-          </motion.p>
-
           <h1 className="font-display text-[10vw] font-bold leading-[1.05] sm:text-5xl xl:text-[3.6rem]">
             <MaskReveal lines={[c.hero_title]} delay={0.15} />
             <span className="mt-1 block bg-gold-sheen bg-clip-text text-transparent">
@@ -281,13 +277,6 @@ function PhotoHero({ c }) {
             >
               {c.hero_cta}
               <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
-            </MagneticButton>
-            <MagneticButton
-              to="/category/cashews"
-              strength={0.25}
-              className="rounded-full border border-luxe-ink/15 bg-white/60 px-8 py-4 text-sm font-semibold text-luxe-ink transition hover:border-luxe-ink hover:bg-[#fcf3e4]"
-            >
-              Shop Cashews
             </MagneticButton>
           </motion.div>
 
@@ -350,13 +339,8 @@ function HeroShowcase({ tiles, reduce }) {
           )}
         </AnimatePresence>
         {cur && (
-          <Link
-            to={cur.to}
-            className="absolute inset-x-4 bottom-4 flex items-center justify-between rounded-2xl bg-white/90 px-4 py-3 text-luxe-ink backdrop-blur transition hover:bg-white"
-          >
-            <span className="font-display text-lg font-bold">{cur.name}</span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-luxe-gold text-ink"><ArrowRight size={16} /></span>
-          </Link>
+          // Image only — no caption; the whole image links to its category.
+          <Link to={cur.to} aria-label={cur.name} className="absolute inset-0" />
         )}
       </div>
 
@@ -376,20 +360,6 @@ function HeroShowcase({ tiles, reduce }) {
           ))}
         </div>
       )}
-
-      {/* Floating trust badge */}
-      <motion.div
-        initial={reduce ? false : { opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1, duration: 0.8, ease: EASE }}
-        className="absolute left-0 top-[18%] flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-luxe ring-1 ring-luxe-ink/5"
-      >
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-luxe-gold/15 text-luxe-gold"><Leaf size={18} /></span>
-        <div className="leading-tight">
-          <p className="font-display text-base font-bold text-luxe-ink">100% Natural</p>
-          <p className="text-xs text-luxe-ink/55">Sorted by hand</p>
-        </div>
-      </motion.div>
     </motion.div>
   );
 }

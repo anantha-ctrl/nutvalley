@@ -9,8 +9,12 @@ import { useCompare } from '../context/CompareContext';
 import QuickViewModal from './QuickViewModal';
 import Tilt3D from '../landing/lib/Tilt3D';
 import { productImage } from '../utils/productImage';
+import { cdnSized, cdnSrcSet } from '../utils/cdn';
 
-export default function ProductCard({ product }) {
+// Card is ~half the viewport on mobile, ~1/3 on tablet, ~300px on desktop.
+const CARD_SIZES = '(min-width: 1280px) 300px, (min-width: 640px) 33vw, 50vw';
+
+export default function ProductCard({ product, priority = false }) {
   const { has, toggle } = useWishlist();
   const { add } = useCart();
   const compare = useCompare();
@@ -30,9 +34,13 @@ export default function ProductCard({ product }) {
       <div className="relative aspect-[3/4] overflow-hidden">
         <Link to={`/product/${product.slug}`}>
           <img
-            src={productImage(product)}
+            src={cdnSized(productImage(product), 480)}
+            srcSet={cdnSrcSet(productImage(product))}
+            sizes={CARD_SIZES}
             alt={product.name}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
             className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
           />
         </Link>

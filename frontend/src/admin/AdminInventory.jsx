@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cdnSized } from '../utils/cdn';
 import { Search, Save, AlertTriangle, PackageCheck, PackageX, Boxes } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
@@ -72,7 +73,7 @@ export default function AdminInventory() {
               <tr key={p.id} className="border-b border-black/5 last:border-0 dark:border-white/10">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
-                    <img src={p.image} className="h-11 w-9 rounded-lg object-cover" alt="" />
+                    <img src={cdnSized(p.image, 120)} loading="lazy" className="h-11 w-9 rounded-lg object-cover" alt="" />
                     <div>
                       <p className="font-medium">{p.name}</p>
                       <p className="text-xs text-gray-400">{p.brand}</p>
